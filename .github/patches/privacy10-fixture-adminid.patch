@@ -1,6 +1,6 @@
 --- a/tests/Feature/PrivacyRightsTest.php
 +++ b/tests/Feature/PrivacyRightsTest.php
-@@ -69,8 +69,8 @@
+@@ -74,8 +74,8 @@
          $held=$this->inquiry('privacy@example.test',true);
          $other=$this->inquiry('other@example.test');
          $case=$this->privacy('privacy@example.test');
