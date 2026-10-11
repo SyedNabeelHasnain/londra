@@ -1,0 +1,176 @@
+name: Londra Transfers — Build and Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-verify:
+    name: Compile and verify against temporary MySQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: londra_test
+          MYSQL_USER: londra_ci
+          MYSQL_PASSWORD: ci_ephemeral_database_password
+          MYSQL_ROOT_PASSWORD: ci_ephemeral_root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      CI: "true"
+      COMPOSER_MEMORY_LIMIT: -1
+      APP_ENV: testing
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: londra_test
+      DB_USERNAME: londra_ci
+      DB_PASSWORD: ci_ephemeral_database_password
+    steps:
+      - name: Checkout submitted single source ZIP
+        uses: actions/checkout@v4
+
+      - name: Verify single source ZIP and extract
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "613d76c8c02754da41e1bedca26a63cdd54be3b833bd7232cfe0d13d4da85e87  londra-source.zip" | sha256sum -c -
+          mkdir -p "$GITHUB_WORKSPACE/londra"
+          unzip -q londra-source.zip -d "$GITHUB_WORKSPACE/londra"
+          test -f londra/composer.json
+          test -f londra/artisan
+          test -f londra/package.json
+          test ! -f londra/.env
+          (cd londra && sha256sum -c SHA256SUMS.txt)
+
+      - name: Set up PHP 8.5 and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, fileinfo, filter, gd, intl, json, mbstring, openssl, pdo, pdo_mysql, session, tokenizer, xml, xmlwriter, zip
+          coverage: none
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify PHP platform and source syntax
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -v
+          php -r 'if (PHP_VERSION_ID < 80504 || PHP_VERSION_ID >= 80600) { exit(1); }'
+          php -r 'foreach (["curl","dom","intl","mbstring","pdo_mysql","xmlwriter"] as $e) { if (!extension_loaded($e)) { fwrite(STDERR,"Required extension unavailable: $e\n"); exit(1); } }'
+          composer validate --strict
+          find app bootstrap config database lang resources routes tests -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l > "$RUNNER_TEMP/php-lint.txt"
+          php -l artisan
+          php tests/domain-checks.php
+
+      - name: Resolve PHP dependencies and audit
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer update --prefer-dist --no-interaction --no-progress --with-all-dependencies
+          composer check-platform-reqs
+          composer audit --locked --no-interaction
+
+      - name: Resolve JavaScript dependencies and build assets
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --no-fund
+          npm audit --audit-level=high
+          npm run build
+          test -f public/build/manifest.json
+
+      - name: Generate isolated test environment
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEST_KEY=$(php -r 'echo "base64:".base64_encode(random_bytes(32));')
+          {
+            printf 'APP_NAME="Londra Transfers CI"\n'
+            printf 'APP_ENV=testing\nAPP_DEBUG=false\nAPP_URL=http://localhost\n'
+            printf 'APP_KEY=%s\n' "$TEST_KEY"
+            printf 'DB_CONNECTION=mysql\nDB_HOST=127.0.0.1\nDB_PORT=3306\n'
+            printf 'DB_DATABASE=londra_test\nDB_USERNAME=londra_ci\nDB_PASSWORD=ci_ephemeral_database_password\n'
+            printf 'SESSION_DRIVER=array\nCACHE_STORE=array\nQUEUE_CONNECTION=database\nMAIL_MAILER=array\n'
+            printf 'LONDRA_PREVIEW=true\nLONDRA_ACCEPT_INQUIRIES=false\nLONDRA_SEND_NOTIFICATIONS=false\n'
+            printf 'LONDRA_PUBLICATION_APPROVED=false\nLONDRA_PRIVACY_APPROVED=false\nLONDRA_INDEXING_ENABLED=false\n'
+          } > .env.testing
+          cp .env.testing .env
+          php artisan about --only=environment
+
+      - name: Run migrations and framework tests against synthetic database
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan config:clear
+          php artisan migrate --env=testing --force --no-interaction
+          php artisan test --testsuite=Portal
+          php artisan route:list --except-vendor > "$RUNNER_TEMP/londra-routes.txt"
+
+      - name: Compile Filament assets
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan filament:assets
+          test -f public/build/manifest.json
+          test -f vendor/autoload.php
+
+      - name: Create no-build private/public hosting archive
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x tools/build-private-release.sh
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          composer check-platform-reqs --no-dev
+          mkdir -p "$GITHUB_WORKSPACE/output"
+          bash tools/build-private-release.sh "$GITHUB_WORKSPACE/output"
+          test -f "$GITHUB_WORKSPACE/output/Londra_Hostinger_Private_Public_Release.zip"
+          unzip -tq "$GITHUB_WORKSPACE/output/Londra_Hostinger_Private_Public_Release.zip"
+          cat > "$GITHUB_WORKSPACE/output/READ_BEFORE_HOSTINGER_UPLOAD.txt" <<'ENDNOTE'
+          This is a dependency-complete build candidate, NOT a validated one-click Hostinger installation.
+          Install using separated private and public directories. Never upload the private Laravel folder into a public URL.
+          The first-install browser wizard, Hostinger runtime validation, live database and SMTP tests,
+          confirmed policies and administrator creation remain pending.
+          Do not deploy publicly based only on a green GitHub Actions run.
+          ENDNOTE
+          cp composer.lock package-lock.json "$GITHUB_WORKSPACE/output/"
+          (cd "$GITHUB_WORKSPACE/output" && sha256sum Londra_Hostinger_Private_Public_Release.zip composer.lock package-lock.json > BUILD_SHA256.txt)
+
+      - name: Upload verified build candidate
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Prebuilt-Private-Public-Candidate
+          path: output/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Report whether installation is complete
+        if: always()
+        shell: bash
+        run: |
+          echo 'GitHub Actions tests package resolution, compilation, source checks, isolated MySQL, and archive integrity.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'A passing workflow does NOT verify a one-click Hostinger install, live SMTP or production policies.' >> "$GITHUB_STEP_SUMMARY"
