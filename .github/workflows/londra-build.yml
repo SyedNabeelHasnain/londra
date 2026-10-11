@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/londra-build.yml'
       - '.github/patches/qa07-delta.zlib.b64'
+      - '.github/patches/qa09-policy-publication-gates.patch'
 
 permissions:
   contents: read
