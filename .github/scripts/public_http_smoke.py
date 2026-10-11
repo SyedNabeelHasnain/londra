@@ -1,4 +1,5 @@
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -44,6 +45,10 @@ for page in pages:
             raise SystemExit(f"Missing canonical: {url}")
         if "<img" not in html or "<title>" not in html:
             raise SystemExit(f"Missing essential media/title: {url}")
+        if not re.search(r'<meta property="og:image" content="https?://[^"]+/assets/', html):
+            raise SystemExit(f"Social preview image must use an absolute URL: {url}")
+        if not re.search(r'<meta name="twitter:image" content="https?://[^"]+/assets/', html):
+            raise SystemExit(f"Twitter image metadata missing: {url}")
         for term in ("lorem ipsum", "template only", "this development preview is private", "not a live website"):
             if term in html.lower():
                 raise SystemExit(f"Development-facing text ({term}) at {url}")
