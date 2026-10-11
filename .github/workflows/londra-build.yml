@@ -92,6 +92,32 @@ jobs:
               print('QA verified:', file['file'])
           PY
 
+      - name: Set up PHP 8.5 and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, fileinfo, filter, gd, intl, json, mbstring, openssl, pdo, pdo_mysql, session, tokenizer, xml, xmlwriter, zip
+          coverage: none
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Verify PHP platform and source syntax
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -v
+          php -r 'if (PHP_VERSION_ID < 80504 || PHP_VERSION_ID >= 80600) { exit(1); }'
+          php -r 'foreach (["curl","dom","intl","mbstring","pdo_mysql","xmlwriter"] as $e) { if (!extension_loaded($e)) { fwrite(STDERR,"Required extension unavailable: $e\n"); exit(1); } }'
+          composer validate --strict
+          find app bootstrap config database lang resources routes tests -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l > "$RUNNER_TEMP/php-lint.txt"
+          php -l artisan
+          php tests/domain-checks.php
+
       - name: Apply checksummed privacy rights module
         shell: bash
         run: |
@@ -123,32 +149,6 @@ jobs:
               print('Verified',rec['file'])
           PY
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
-
-      - name: Set up PHP 8.5 and Composer
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.5"
-          tools: composer:v2
-          extensions: bcmath, ctype, curl, dom, fileinfo, filter, gd, intl, json, mbstring, openssl, pdo, pdo_mysql, session, tokenizer, xml, xmlwriter, zip
-          coverage: none
-
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-
-      - name: Verify PHP platform and source syntax
-        working-directory: londra
-        shell: bash
-        run: |
-          set -euo pipefail
-          php -v
-          php -r 'if (PHP_VERSION_ID < 80504 || PHP_VERSION_ID >= 80600) { exit(1); }'
-          php -r 'foreach (["curl","dom","intl","mbstring","pdo_mysql","xmlwriter"] as $e) { if (!extension_loaded($e)) { fwrite(STDERR,"Required extension unavailable: $e\n"); exit(1); } }'
-          composer validate --strict
-          find app bootstrap config database lang resources routes tests -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l > "$RUNNER_TEMP/php-lint.txt"
-          php -l artisan
-          php tests/domain-checks.php
 
       - name: Resolve PHP dependencies and audit
         working-directory: londra
