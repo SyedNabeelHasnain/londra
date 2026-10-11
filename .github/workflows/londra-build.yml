@@ -8,6 +8,7 @@ on:
       - '.github/workflows/londra-build.yml'
       - '.github/patches/qa07-delta.zlib.b64'
       - '.github/patches/qa09-policy-publication-gates.patch'
+      - '.github/patches/privacy10.part*.txt'
 
 permissions:
   contents: read
@@ -90,6 +91,38 @@ jobs:
               path.write_text(old)
               print('QA verified:', file['file'])
           PY
+
+      - name: Apply checksummed privacy rights module
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/patches/privacy10.part{01,02,03,04}.txt > "$RUNNER_TEMP/privacy10.xz.b64"
+          echo "7f0e04196c6352496152c95a95edae55815f194257ce627baccfbe7728dfa170  $RUNNER_TEMP/privacy10.xz.b64" | sha256sum -c -
+          python3 - <<'PY'
+          import base64,hashlib,json,lzma
+          from pathlib import Path
+          records=json.loads(lzma.decompress(base64.b64decode(Path(__import__('os').environ['RUNNER_TEMP'],'privacy10.xz.b64').read_text())))
+          base=Path('londra').resolve()
+          for rec in records:
+              dest=(base / rec['file']).resolve()
+              if not dest.is_relative_to(base):raise SystemExit('Invalid path in QA10 module')
+              if 'new' in rec:
+                  if dest.exists():raise SystemExit('Unexpected existing file: '+rec['file'])
+                  content=rec['new']
+                  dest.parent.mkdir(parents=True,exist_ok=True)
+              else:
+                  if not dest.exists():raise SystemExit('Missing QA10 baseline: '+rec['file'])
+                  content=dest.read_text()
+                  if hashlib.sha256(content.encode()).hexdigest()!=rec['before']:
+                      raise SystemExit('QA10 baseline changed: '+rec['file'])
+                  for start,end,replacement in reversed(rec['ops']):
+                      content=content[:start]+replacement+content[end:]
+              if hashlib.sha256(content.encode()).hexdigest()!=rec['after']:
+                  raise SystemExit('QA10 checksum mismatch: '+rec['file'])
+              dest.write_text(content)
+              print('Verified',rec['file'])
+          PY
+          find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
 
       - name: Set up PHP 8.5 and Composer
         uses: shivammathur/setup-php@v2
