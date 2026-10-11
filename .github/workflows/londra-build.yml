@@ -53,6 +53,14 @@ jobs:
           test ! -f londra/.env
           (cd londra && sha256sum -c SHA256SUMS.txt)
 
+      - name: Apply audited application fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/ci-2026-10-11.patch
+          php -l londra/app/Models/PageTranslation.php
+          php -l londra/tests/Feature/PortalTest.php
+
       - name: Set up PHP 8.5 and Composer
         uses: shivammathur/setup-php@v2
         with:
