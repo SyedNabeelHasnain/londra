@@ -18,6 +18,7 @@ on:
       - '.github/patches/qa13-privacy-receipt-test.patch'
       - '.github/patches/qa14-verified-erasure-holds.patch'
       - '.github/scripts/qa15_after_commit.py'
+      - '.github/scripts/qa16_admin_schema.py'
       - '.github/patches/qa15-response-clock-from-receipt.patch'
       - '.github/patches/qa16-documented-holds.patch'
 
@@ -209,6 +210,10 @@ jobs:
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa13-privacy-receipt-test.patch
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa14-verified-erasure-holds.patch
           python3 .github/scripts/qa15_after_commit.py
+          python3 .github/scripts/qa16_admin_schema.py
+          php -l londra/app/Filament/Pages/Readiness.php
+          php -l londra/app/Services/ReadinessReport.php
+          php -l londra/tests/Feature/PrivacyRightsTest.php
           php -l londra/app/Services/ErasureService.php
           php -l londra/app/Filament/Resources/PrivacyRequestResource.php
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa15-response-clock-from-receipt.patch
