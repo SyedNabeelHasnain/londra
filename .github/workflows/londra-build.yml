@@ -60,6 +60,8 @@ jobs:
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/ci-2026-10-11.patch
           php -l londra/app/Models/PageTranslation.php
           php -l londra/tests/Feature/PortalTest.php
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/admin-mfa-optional-2026-10-11.patch
+          php -l londra/app/Providers/Filament/AdminPanelProvider.php
 
       - name: Set up PHP 8.5 and Composer
         uses: shivammathur/setup-php@v2
