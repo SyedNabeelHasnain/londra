@@ -2,6 +2,11 @@ name: Londra Transfers — Build and Test
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/londra-build.yml'
+      - '.github/patches/qa07-delta.zlib.b64'
 
 permissions:
   contents: read
@@ -38,7 +43,7 @@ jobs:
       DB_PASSWORD: ci_ephemeral_database_password
     steps:
       - name: Checkout submitted single source ZIP
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Verify single source ZIP and extract
         shell: bash
@@ -86,7 +91,7 @@ jobs:
           coverage: none
 
       - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
 
