@@ -12,6 +12,7 @@ on:
       - '.github/patches/privacy10-fixture-adminid.patch'
       - '.github/tests/PrivacyAdminTest.php'
       - '.github/patches/qa11-gated-privacy-form.patch'
+      - '.github/patches/qa11-gated-privacy-form.zlib.b64'
 
 permissions:
   contents: read
@@ -162,7 +163,17 @@ jobs:
           path.write_text(source.replace(original, replacement))
           PY
           cp .github/tests/PrivacyAdminTest.php londra/tests/Feature/PrivacyAdminTest.php
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa11-gated-privacy-form.patch
+          python3 - <<'PY'
+          import base64, hashlib, zlib
+          from pathlib import Path
+          compressed=Path('.github/patches/qa11-gated-privacy-form.zlib.b64').read_text().strip()
+          data=zlib.decompress(base64.b64decode(compressed))
+          expected='0037bba9352256d3700bdc53755a89a2f1f1ed96361fc43737496d9669cd879a'
+          if hashlib.sha256(data).hexdigest()!=expected:
+              raise SystemExit('QA11 patch integrity mismatch')
+          Path('/tmp/londra-qa11.patch').write_bytes(data)
+          PY
+          patch --fuzz=0 --batch -d londra -p1 < /tmp/londra-qa11.patch
           php -l londra/app/Http/Controllers/PrivacyRequestController.php
           php -l londra/tests/Feature/PrivacyRightsTest.php
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
