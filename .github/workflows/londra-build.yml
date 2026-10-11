@@ -15,6 +15,7 @@ on:
       - '.github/patches/qa11-gated-privacy-form.zlib.b64'
       - '.github/patches/qa12-dynamic-privacy-links.zlib.b64'
       - '.github/patches/qa13-privacy-rights-corrections.zlib.b64'
+      - '.github/patches/qa13-privacy-receipt-test.patch'
 
 permissions:
   contents: read
@@ -201,6 +202,7 @@ jobs:
           Path('/tmp/londra-qa13.patch').write_bytes(data)
           PY
           patch --fuzz=0 --batch -d londra -p1 < /tmp/londra-qa13.patch
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa13-privacy-receipt-test.patch
           php -l londra/app/Services/ErasureService.php
           php -l londra/app/Http/Controllers/PrivacyRequestController.php
           php -l londra/resources/views/privacy/request.blade.php
