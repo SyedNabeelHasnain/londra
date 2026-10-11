@@ -21,6 +21,7 @@ on:
       - '.github/scripts/qa16_admin_schema.py'
       - '.github/scripts/qa18_privacy_schema_gate.py'
       - '.github/scripts/verify_hostinger_release.py'
+      - '.github/scripts/qa20_legacy_upgrade.php'
       - '.github/docs/HOSTINGER_NO_SSH_RELEASE.md'
       - '.github/patches/qa15-response-clock-from-receipt.patch'
       - '.github/patches/qa16-documented-holds.patch'
@@ -282,6 +283,18 @@ jobs:
           php artisan migrate --env=testing --force --no-interaction
           php artisan test --testsuite=Portal
           php artisan route:list --except-vendor > "$RUNNER_TEMP/londra-routes.txt"
+
+      - name: Test additive privacy migration against preserved legacy enquiry
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan migrate:fresh --env=testing --force --no-interaction --path=database/migrations/2026_10_08_000001_create_portal_tables.php
+          php ../.github/scripts/qa20_legacy_upgrade.php prepare
+          php artisan migrate --env=testing --force --no-interaction
+          php ../.github/scripts/qa20_legacy_upgrade.php verify
+          php artisan migrate --env=testing --force --no-interaction
+          php ../.github/scripts/qa20_legacy_upgrade.php verify
 
       - name: Verify actual Laravel HTTP responses in all three languages
         working-directory: londra
