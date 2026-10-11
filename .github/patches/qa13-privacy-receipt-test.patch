@@ -1,6 +1,6 @@
 --- a/tests/Feature/PrivacyRightsTest.php
 +++ b/tests/Feature/PrivacyRightsTest.php
-@@ -63,7 +63,7 @@
+@@ -63,6 +63,6 @@
              $page->update(['approved_at'=>now(),'published'=>true]);
          }
 -        $this->get('/en/privacy-request')->assertSee('name="email"',false);
