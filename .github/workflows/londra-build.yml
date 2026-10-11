@@ -20,6 +20,7 @@ on:
       - '.github/scripts/qa15_after_commit.py'
       - '.github/scripts/qa16_admin_schema.py'
       - '.github/scripts/qa18_privacy_schema_gate.py'
+      - '.github/scripts/verify_hostinger_release.py'
       - '.github/patches/qa15-response-clock-from-receipt.patch'
       - '.github/patches/qa16-documented-holds.patch'
 
@@ -322,6 +323,12 @@ jobs:
           ENDNOTE
           cp composer.lock package-lock.json "$GITHUB_WORKSPACE/output/"
           (cd "$GITHUB_WORKSPACE/output" && sha256sum Londra_Hostinger_Private_Public_Release.zip composer.lock package-lock.json > BUILD_SHA256.txt)
+
+      - name: Audit Hostinger ZIP isolation and integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/verify_hostinger_release.py
 
       - name: Upload verified build candidate
         if: success()
