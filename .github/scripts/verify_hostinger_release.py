@@ -24,7 +24,7 @@ with ZipFile(path) as archive:
         if stat.S_ISLNK(entry.external_attr >> 16):
             raise SystemExit('Symlinks cannot be safely extracted by hPanel: '+name)
         lowered=name.lower()
-        if not entry.is_dir() and (lowered.endswith('/.env') or lowered.endswith('/.env.testing') or '/storage/logs/' in lowered or '/storage/framework/sessions/' in lowered):
+        if not entry.is_dir() and PurePosixPath(name).name != '.gitignore' and (lowered.endswith('/.env') or lowered.endswith('/.env.testing') or '/storage/logs/' in lowered or '/storage/framework/sessions/' in lowered):
             raise SystemExit('Runtime secret/session/log embedded: '+name)
         if lowered.startswith('public_html/') and any(token in lowered for token in ('/vendor/','/.git/','/storage/','/config/','/database/')):
             raise SystemExit('Private application directory exposed in webroot: '+name)
