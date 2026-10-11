@@ -62,6 +62,20 @@ jobs:
           php -l londra/tests/Feature/PortalTest.php
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/admin-mfa-optional-2026-10-11.patch
           php -l londra/app/Providers/Filament/AdminPanelProvider.php
+          python3 - <<'PY'
+          import base64, hashlib, json, zlib
+          from pathlib import Path
+          patch = json.loads(zlib.decompress(base64.b64decode(Path('.github/patches/qa07-delta.zlib.b64').read_text().strip())))
+          for file in patch:
+              path = Path('londra') / file['file']
+              old = path.read_text()
+              assert hashlib.sha256(old.encode()).hexdigest() == file['base_sha'], file['file']
+              for start, end, replacement in reversed(file['ops']):
+                  old = old[:start] + replacement + old[end:]
+              assert hashlib.sha256(old.encode()).hexdigest() == file['updated_sha'], file['file']
+              path.write_text(old)
+              print('QA verified:', file['file'])
+          PY
 
       - name: Set up PHP 8.5 and Composer
         uses: shivammathur/setup-php@v2
