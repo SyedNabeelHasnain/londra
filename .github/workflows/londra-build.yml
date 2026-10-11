@@ -18,6 +18,7 @@ on:
       - '.github/patches/qa13-privacy-receipt-test.patch'
       - '.github/patches/qa14-verified-erasure-holds.patch'
       - '.github/patches/qa15-response-clock-from-receipt.patch'
+      - '.github/patches/qa16-documented-holds.patch'
 
 permissions:
   contents: read
@@ -210,6 +211,9 @@ jobs:
           php -l londra/app/Filament/Resources/PrivacyRequestResource.php
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa15-response-clock-from-receipt.patch
           php -l londra/app/Models/PrivacyRequest.php
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa16-documented-holds.patch
+          php -l londra/app/Models/Inquiry.php
+          php -l londra/tests/Feature/PrivacyRightsTest.php
           php -l londra/app/Filament/Resources/PrivacyRequestResource.php
           php -l londra/tests/Feature/PrivacyRightsTest.php
           php -l londra/app/Services/ErasureService.php
