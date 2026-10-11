@@ -1,0 +1,5 @@
+--- a/app/Providers/Filament/AdminPanelProvider.php
++++ b/app/Providers/Filament/AdminPanelProvider.php
+@@ -35 +35 @@
+-            ->multiFactorAuthentication([AppAuthentication::make()->recoverable()->brandName('Londra Transfers')], isRequired: true)
++            ->multiFactorAuthentication([AppAuthentication::make()->recoverable()->brandName('Londra Transfers')], isRequired: false)
