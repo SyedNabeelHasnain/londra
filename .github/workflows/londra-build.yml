@@ -10,6 +10,7 @@ on:
       - '.github/patches/qa09-policy-publication-gates.patch'
       - '.github/patches/privacy10.part*.txt'
       - '.github/patches/privacy10-fixture-adminid.patch'
+      - '.github/tests/PrivacyAdminTest.php'
 
 permissions:
   contents: read
@@ -159,6 +160,7 @@ jobs:
               raise SystemExit('Unable to locate isolated test administrator fixture')
           path.write_text(source.replace(original, replacement))
           PY
+          cp .github/tests/PrivacyAdminTest.php londra/tests/Feature/PrivacyAdminTest.php
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
 
       - name: Resolve PHP dependencies and audit
