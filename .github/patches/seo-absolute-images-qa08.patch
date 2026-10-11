@@ -1,0 +1,16 @@
+--- a/resources/views/site.blade.php
++++ b/resources/views/site.blade.php
+@@ -7,7 +7,12 @@
+ <?php foreach($v['alternates'] as $locale=>$url): ?><link rel="alternate" hreflang="<?= $e($locale) ?>" href="<?= $e($url) ?>"><?php endforeach; ?>
+ <link rel="alternate" hreflang="x-default" href="<?= $e($p['key']==='home'?$v['origin'].'/':($v['alternates']['en']??$v['canonical'])) ?>">
+ <meta property="og:type" content="website"><meta property="og:site_name" content="Londra Transfers"><meta property="og:title" content="<?= $e($p['seo_title']) ?>"><meta property="og:description" content="<?= $e($p['meta_description']) ?>"><meta property="og:url" content="<?= $e($v['canonical']) ?>"><meta property="og:locale" content="<?= $e(['en'=>'en_GB','it'=>'it_IT','es'=>'es_ES'][$v['locale']]) ?>">
+-<?php if(isset($v['media'][$p['image_key']])): ?><meta property="og:image" content="<?= $e(($v['media'][$p['image_key']]['url']??($v['origin'].'/'.$v['media'][$p['image_key']]['original']))) ?>"><meta property="og:image:alt" content="<?= $e($v['media'][$p['image_key']]['alt'][$v['locale']]??'') ?>"><?php endif; ?>
++<?php if(isset($v['media'][$p['image_key']])):
++$ogMedia=$v['media'][$p['image_key']];
++$ogPath=(string)($ogMedia['url']??$ogMedia['original']);
++$ogImage=preg_match('~^https?://~i',$ogPath)?$ogPath:rtrim($v['origin'],'/').'/'.ltrim($ogPath,'/');
++$ogAlt=(string)($ogMedia['alt'][$v['locale']]??'');
++?><meta property="og:image" content="<?= $e($ogImage) ?>"><meta property="og:image:alt" content="<?= $e($ogAlt) ?>"><meta name="twitter:image" content="<?= $e($ogImage) ?>"><meta name="twitter:image:alt" content="<?= $e($ogAlt) ?>"><?php endif; ?>
+ <meta name="twitter:card" content="summary_large_image"><link rel="icon" type="image/png" href="<?= $e($base) ?>assets/artwork/logo-master-gold.png">
+ <script src="<?= $e($base) ?>assets/theme.js"></script><link rel="stylesheet" href="<?= $e($v['css_url']) ?>"><script <?= $v['offline']?'defer':'type="module"' ?> src="<?= $e($v['js_url']) ?>"></script>
+ <script type="application/ld+json"><?= $v['schema'] ?></script>
