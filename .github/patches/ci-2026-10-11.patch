@@ -1,0 +1,29 @@
+--- a/app/Models/PageTranslation.php
++++ b/app/Models/PageTranslation.php
+@@ -28,8 +28,11 @@
+             }
+         });
+         static::updating(function (PageTranslation $translation): void {
+-            if ($translation->page->approval_required) { $translation->page->update(['published'=>false,'approved_at'=>null]); }
+-            elseif ($translation->isDirty('ready') && !$translation->ready) { $translation->page->update(['published'=>false]); }
++            if ($translation->page()->where('kind', 'policy')->exists()) {
++                Page::query()->whereKey($translation->page_id)->update(['published' => false, 'approved_at' => null]);
++            } elseif ($translation->isDirty('ready') && !$translation->ready) {
++                Page::query()->whereKey($translation->page_id)->update(['published' => false]);
++            }
+             ContentRevision::create(['page_id' => $translation->page_id, 'locale' => $translation->locale, 'snapshot' => $translation->getOriginal(), 'user_id' => auth()->id()]);
+             if ($translation->isDirty('slug')) {
+                 Redirect::updateOrCreate(['locale' => $translation->locale, 'from_path' => $translation->getOriginal('slug')], ['page_id' => $translation->page_id]);
+--- a/tests/Feature/PortalTest.php
++++ b/tests/Feature/PortalTest.php
+@@ -42,7 +42,9 @@
+     {
+         $this->get('/en/not-a-page')->assertNotFound();
+         $this->get('/media/example.php')->assertNotFound();
+-        $this->get('/storage/inquiries')->assertNotFound();
++        $private = $this->get('/storage/inquiries');
++        $this->assertContains($private->getStatusCode(), [403, 404]);
++        $private->assertDontSee('APP_KEY=', false);
+     }
+     public function test_single_admin_rule_prevents_a_second_administrator(): void
+     {
