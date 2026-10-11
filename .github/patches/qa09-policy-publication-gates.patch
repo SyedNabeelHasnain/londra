@@ -1,0 +1,72 @@
+--- a/app/Services/PublicationState.php
++++ b/app/Services/PublicationState.php
+@@ -7,7 +7,13 @@
+ {
+     public function policiesReady(): bool
+     {
+-        return Page::query()->whereIn('key', ['privacy', 'terms', 'refund'])->where('published', true)->whereNotNull('approved_at')->whereHas('translations', fn($q) => $q->where('ready', true), '=', 3)->count() === 3;
++        $keys = ['privacy', 'terms', 'refund', 'cookies', 'accessibility'];
++        return Page::query()
++            ->whereIn('key', $keys)
++            ->where('published', true)
++            ->whereNotNull('approved_at')
++            ->whereHas('translations', fn($q) => $q->where('ready', true)->whereNotNull('body')->whereRaw('CHAR_LENGTH(TRIM(body)) > 0'), '=', 3)
++            ->count() === count($keys);
+     }
+     public function inquiriesAllowed(): bool { return ReleasePolicy::inquiryAllowed(config('londra')) && $this->policiesReady(); }
+     public function indexingAllowed(): bool { return ReleasePolicy::indexAllowed(config('londra')) && $this->policiesReady(); }
+--- a/app/Models/PageTranslation.php
++++ b/app/Models/PageTranslation.php
+@@ -26,6 +26,9 @@
+             if ($translation->ready && (trim($translation->title) === '' || trim($translation->intro) === '' || trim($translation->seo_title) === '' || trim($translation->meta_description) === '')) {
+                 throw ValidationException::withMessages(['ready' => 'Title, introduction and metadata are required.']);
+             }
++            if ($translation->ready && $translation->page()->where('kind', 'policy')->exists() && trim((string) $translation->body) === '') {
++                throw ValidationException::withMessages(['body' => 'Reviewed policy content must contain approved customer-facing text.']);
++            }
+         });
+         static::updating(function (PageTranslation $translation): void {
+             if ($translation->page()->where('kind', 'policy')->exists()) {
+--- a/app/Models/Page.php
++++ b/app/Models/Page.php
+@@ -18,6 +18,10 @@
+     {
+         static::saving(function (Page $page): void {
+             if ($page->kind === 'policy') { $page->approval_required = true; }
++            if ($page->kind === 'policy' && $page->isDirty('approved_at') && $page->approved_at !== null
++                && $page->translations()->where('ready', true)->whereNotNull('body')->whereRaw('CHAR_LENGTH(TRIM(body)) > 0')->count() !== 3) {
++                throw ValidationException::withMessages(['approved_at' => 'Review the complete policy text in English, Italian and Spanish before approval.']);
++            }
+             if ($page->isDirty('published') && $page->published && !ReleasePolicy::canPublish($page->approval_required, $page->approved_at !== null, $page->translations()->where('ready', true)->pluck('locale')->all())) {
+                 throw ValidationException::withMessages(['published' => 'Complete all three translations and required approval before publishing.']);
+             }
+--- a/app/Services/ReadinessReport.php
++++ b/app/Services/ReadinessReport.php
+@@ -33,7 +33,7 @@
+             ['label'=>'MySQL connection','ok'=>$connection,'detail'=>$connection?'Query succeeded':'Not verified'],
+             ['label'=>'Exactly one administrator','ok'=>$connection&&User::count()===1,'detail'=>'Single administrator only; registration is disabled.'],
+             ['label'=>'Published pages have three reviewed translations','ok'=>$connection&&$pages->isNotEmpty()&&$unfinished===0,'detail'=>$unfinished.' published pages require attention.'],
+-            ['label'=>'Policies reviewed and published','ok'=>$policies===5,'detail'=>$policies.' of 5 policy pages approved and published.'],
++            ['label'=>'Policies reviewed and published','ok'=>$connection&&app(PublicationState::class)->policiesReady(),'detail'=>$policies.' of 5 policy pages approved and published; all require complete English, Italian and Spanish text.'],
+             ['label'=>'Preview protection disabled for approved launch','ok'=>!config('londra.preview'),'detail'=>'Keep protection enabled until acceptance checks have passed.'],
+             ['label'=>'Publication explicitly approved','ok'=>(bool)config('londra.publication_approved'),'detail'=>'Business approval is separate from software testing.'],
+             ['label'=>'Privacy explicitly approved','ok'=>(bool)config('londra.privacy_approved'),'detail'=>'Requires accurate retention and processing information.'],
+--- a/app/Http/Middleware/SecurityHeaders.php
++++ b/app/Http/Middleware/SecurityHeaders.php
+@@ -1,7 +1,7 @@
+ <?php
+ declare(strict_types=1);
+ namespace App\Http\Middleware;
+-use App\Domain\ReleasePolicy;
++use App\Services\PublicationState;
+ use Closure;
+ use Illuminate\Http\Request;
+ use Symfony\Component\HttpFoundation\Response;
+@@ -15,7 +15,7 @@
+         $response->headers->set('X-Frame-Options', 'DENY');
+         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+         $private = $request->is('admin*', 'livewire*', 'preview*') || !$request->isMethod('GET');
+-        if ($private || !ReleasePolicy::indexAllowed(config('londra'))) { $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive'); }
++        if ($private || !app(PublicationState::class)->indexingAllowed()) { $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive'); }
+         $response->headers->set('Cache-Control', 'private, no-store');
+         if (!$request->is('admin*', 'livewire*')) {
