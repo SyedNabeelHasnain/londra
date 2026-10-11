@@ -1,0 +1,47 @@
+--- a/app/Services/ErasureService.php
++++ b/app/Services/ErasureService.php
+@@ -31,7 +31,7 @@
+             if ($grant) {
+                 $inquiries=Inquiry::where('email_lookup',$case->email_lookup)->lockForUpdate()->get();
+                 foreach ($inquiries as $inquiry) {
+-                    if ($inquiry->retention_hold || $inquiry->converted_offline) { ++$retained; continue; }
++                    if ($inquiry->retention_hold) { ++$retained; continue; }
+                     $inquiry->delete();
+                     ++$deleted;
+                 }
+--- a/tests/Feature/PrivacyRightsTest.php
++++ b/tests/Feature/PrivacyRightsTest.php
+@@ -99,17 +99,17 @@
+         $this->assertSame(1,$case->fresh()->retained_inquiries);
+         $this->assertDatabaseHas('privacy_request_notices',['privacy_request_id'=>$case->id,'kind'=>'decision','status'=>'pending']);
+     }
+-    public function test_offline_confirmed_records_are_not_automatically_erased():void
++    public function test_verified_erasure_may_remove_offline_confirmed_record_without_legal_hold():void
+     {
+         $enquiry=$this->inquiry('contract@example.test');
+         $enquiry->update(['converted_offline'=>true]);
+         $case=$this->privacy('contract@example.test');
+         $administrator=User::create(['name'=>'Test admin','email'=>'admin@example.test','password'=>'secure_password_is_only_a_test']);
+         app(ErasureService::class)->verify($case,$administrator->id,'Verified control of the original email account before deletion review.');
+-        app(ErasureService::class)->decide($case,true,'Offline transport contract requires a separate justified retention review.','Your enquiry is linked to a confirmed journey and remains subject to a separate retention assessment.');
+-        $this->assertDatabaseHas('inquiries',['id'=>$enquiry->id]);
+-        $this->assertSame('partially_completed',$case->fresh()->status);
+-        $this->assertSame(1,$case->fresh()->retained_inquiries);
++        app(ErasureService::class)->decide($case,true,'Confirmed transport enquiry no longer needs retention; no legal hold applies.','After review, the eligible enquiry information was deleted.');
++        $this->assertDatabaseMissing('inquiries',['id'=>$enquiry->id]);
++        $this->assertSame('completed',$case->fresh()->status);
++        $this->assertSame(1,$case->fresh()->deleted_inquiries);
+     }
+     public function test_retention_is_dry_run_until_explicitly_approved():void
+     {
+--- a/app/Filament/Resources/PrivacyRequestResource.php
++++ b/app/Filament/Resources/PrivacyRequestResource.php
+@@ -37,7 +37,7 @@
+         ])->filters([SelectFilter::make('status')->options(['verification_pending'=>'Identity pending','under_review'=>'Under review','completed'=>'Completed','partially_completed'=>'Partially completed','declined'=>'Declined'])])
+           ->recordActions([
+               Action::make('verify')->label('Verify identity')->visible(fn(PrivacyRequest $record)=>$record->status==='verification_pending')->schema([Textarea::make('verification_note')->label('Verification evidence and method')->required()->minLength(15)->maxLength(2500)])->requiresConfirmation()->action(fn(PrivacyRequest $record,array $data)=>app(ErasureService::class)->verify($record,(int)auth()->id(),$data['verification_note'])),
+-              Action::make('grant')->label('Review and erase eligible records')->visible(fn(PrivacyRequest $record)=>$record->status==='under_review'&&$record->verified_at!==null)->schema([Textarea::make('decision_note')->label('Internal review and legal hold evidence')->required()->minLength(15)->maxLength(3500),Textarea::make('customer_explanation')->label('Customer-facing explanation')->required()->minLength(15)->maxLength(2500)])->requiresConfirmation()->modalDescription('Only records associated with the verified email will be erased. Offline-confirmed or explicitly held records are retained. The request and outcome are recorded. This cannot be undone.')->action(fn(PrivacyRequest $record,array $data)=>app(ErasureService::class)->decide($record,true,$data['decision_note'],$data['customer_explanation'])),
++              Action::make('grant')->label('Review and erase eligible records')->visible(fn(PrivacyRequest $record)=>$record->status==='under_review'&&$record->verified_at!==null)->schema([Textarea::make('decision_note')->label('Internal review and legal hold evidence')->required()->minLength(15)->maxLength(3500),Textarea::make('customer_explanation')->label('Customer-facing explanation')->required()->minLength(15)->maxLength(2500)])->requiresConfirmation()->modalDescription('Only records associated with the verified email will be erased. Review externally confirmed journeys for a genuine retention obligation; any justified exception requires a documented hold. The request and outcome are recorded. This cannot be undone.')->action(fn(PrivacyRequest $record,array $data)=>app(ErasureService::class)->decide($record,true,$data['decision_note'],$data['customer_explanation'])),
+               Action::make('decline')->label('Decline with explanation')->visible(fn(PrivacyRequest $record)=>$record->status==='under_review')->schema([Textarea::make('decision_note')->required()->minLength(15)->maxLength(3500),Textarea::make('customer_explanation')->label('Explanation to be sent to the customer')->required()->minLength(15)->maxLength(2500)])->requiresConfirmation()->action(fn(PrivacyRequest $record,array $data)=>app(ErasureService::class)->decide($record,false,$data['decision_note'],$data['customer_explanation'])),
+               Action::make('retry_notice')->label('Send pending acknowledgement')->visible(fn(PrivacyRequest $record)=>$record->notices()->whereIn('status',['pending','failed'])->exists())->requiresConfirmation()->action(function(PrivacyRequest $record):void{
+                   abort_unless(config('londra.send_notifications'),409);
