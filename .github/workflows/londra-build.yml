@@ -13,6 +13,7 @@ on:
       - '.github/tests/PrivacyAdminTest.php'
       - '.github/patches/qa11-gated-privacy-form.patch'
       - '.github/patches/qa11-gated-privacy-form.zlib.b64'
+      - '.github/patches/qa12-dynamic-privacy-links.zlib.b64'
 
 permissions:
   contents: read
@@ -174,6 +175,19 @@ jobs:
           Path('/tmp/londra-qa11.patch').write_bytes(data)
           PY
           patch --fuzz=0 --batch -d londra -p1 < /tmp/londra-qa11.patch
+          php -l londra/app/Http/Controllers/PrivacyRequestController.php
+          php -l londra/tests/Feature/PrivacyRightsTest.php
+          python3 - <<'PY'
+          import base64, hashlib, zlib
+          from pathlib import Path
+          compressed=Path('.github/patches/qa12-dynamic-privacy-links.zlib.b64').read_text().strip()
+          data=zlib.decompress(base64.b64decode(compressed))
+          expected='6c656ad7aa5fd2f4b195d64dc032f8ff1e2e1c0d16c9fab995397d435d6e2ef5'
+          if hashlib.sha256(data).hexdigest()!=expected:
+              raise SystemExit('QA12 patch integrity mismatch')
+          Path('/tmp/londra-qa12.patch').write_bytes(data)
+          PY
+          patch --fuzz=0 --batch -d londra -p1 < /tmp/londra-qa12.patch
           php -l londra/app/Http/Controllers/PrivacyRequestController.php
           php -l londra/tests/Feature/PrivacyRightsTest.php
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
