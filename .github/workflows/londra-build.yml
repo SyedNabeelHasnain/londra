@@ -157,6 +157,17 @@ jobs:
           php artisan test --testsuite=Portal
           php artisan route:list --except-vendor > "$RUNNER_TEMP/londra-routes.txt"
 
+      - name: Verify actual Laravel HTTP responses in all three languages
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan db:seed --env=testing --force --no-interaction
+          LONDRA_PREVIEW=false php artisan serve --host=127.0.0.1 --port=8137 > "$RUNNER_TEMP/londra-web.log" 2>&1 &
+          web_pid=$!
+          trap 'kill "$web_pid" 2>/dev/null || true' EXIT
+          python3 ../.github/scripts/public_http_smoke.py
+
       - name: Compile Filament assets
         working-directory: londra
         shell: bash
