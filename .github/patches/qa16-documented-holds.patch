@@ -1,0 +1,25 @@
+--- a/app/Models/Inquiry.php
++++ b/app/Models/Inquiry.php
+@@ -17,6 +17,7 @@
+     protected static function booted(): void
+     {
+         static::saving(function (Inquiry $inquiry): void {
++            if ($inquiry->retention_hold && mb_strlen(trim((string) $inquiry->retention_hold_reason)) < 15) { throw \Illuminate\Validation\ValidationException::withMessages(['retention_hold_reason'=>'Document the specific legal or retention justification before applying a hold.']); }
+             if ($inquiry->isDirty('status')) { $inquiry->closed_at = $inquiry->status === InquiryStatus::Closed ? now() : null; }
+         });
+     }
+--- a/tests/Feature/PrivacyRightsTest.php
++++ b/tests/Feature/PrivacyRightsTest.php
+@@ -111,6 +111,12 @@
+         $this->assertSame('completed',$case->fresh()->status);
+         $this->assertSame(1,$case->fresh()->deleted_inquiries);
+     }
++    public function test_a_retention_hold_requires_a_specific_documented_reason():void
++    {
++        $case=$this->inquiry('hold@example.test');
++        $this->expectException(ValidationException::class);
++        $case->update(['retention_hold'=>true,'retention_hold_reason'=>null]);
++    }
+     public function test_response_deadline_starts_with_request_receipt_not_later_verification():void
+     {
+         $case=$this->privacy('deadline@example.test');
