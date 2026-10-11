@@ -149,7 +149,16 @@ jobs:
               dest.write_text(content)
               print('Verified',rec['file'])
           PY
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/privacy10-fixture-adminid.patch
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('londra/tests/Feature/PrivacyRightsTest.php')
+          source = path.read_text()
+          original = "        User::create(['name'=>'Test admin','email'=>'admin@example.test','password'=>'secure_password_is_only_a_test']);\n        app(ErasureService::class)->verify($case,1,'Verified control of the known email address via secure correspondence.');"
+          replacement = "        $administrator=User::create(['name'=>'Test admin','email'=>'admin@example.test','password'=>'secure_password_is_only_a_test']);\n        app(ErasureService::class)->verify($case,$administrator->id,'Verified control of the known email address via secure correspondence.');"
+          if source.count(original) != 1:
+              raise SystemExit('Unable to locate isolated test administrator fixture')
+          path.write_text(source.replace(original, replacement))
+          PY
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
 
       - name: Resolve PHP dependencies and audit
