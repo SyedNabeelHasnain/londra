@@ -29,7 +29,7 @@ Release status: compiled deployment candidate. Do not treat it as publicly appro
 - A request alone never automatically erases another person's data. Administrator verification and a reasoned rights decision are required.
 - Documented, specific legal holds may prevent deletion of a particular record; do not create blanket holds.
 - The proposed 180-day unconverted-enquiry retention is configurable and requires an approved operating policy. The routine runs in dry-run mode until explicitly activated.
-- SMTP message handling necessarily transmits sender and recipient addresses and message content to the selected provider. Ordinary Zoho Mail's published September 2026 usage policy disallows automated/transactional mail; confirm permission or choose an authorised transactional sender before enabling production notifications.
+- SMTP message handling necessarily transmits sender and recipient addresses and message content to Zoho Mail. Keep the existing Zoho Mail SMTP configuration; ZeptoMail is not part of this application. Zoho Mail's published September 2026 usage policy disallows automated/transactional messages on ordinary plans. Keep automatic notifications disabled until Zoho confirms this account may use the service for these messages, and verify SPF, DKIM, DMARC, SMTP authentication and actual inbox reception before activation.
 - To activate Cron Jobs, confirm Hostinger's available PHP CLI path and execution intervals. Do not invent an executable path or use a public unauthenticated cron URL.
 
 ## Release verification
