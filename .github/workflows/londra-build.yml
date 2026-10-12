@@ -76,7 +76,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "5bc21cdfe41dfb8cd34fffab92b858c8a0eb21014fb937a0463a32c8a60d5270  londra-qa21-source.zip" | sha256sum -c -
+          echo "1fc56db47051fd04c60e0118015c7789f55dc8a9838505f39c2eead96d3fc468  londra-qa21-source.zip" | sha256sum -c -
           mkdir -p "$GITHUB_WORKSPACE/londra"
           unzip -q londra-qa21-source.zip -d "$GITHUB_WORKSPACE/londra"
           test -f londra/composer.json
