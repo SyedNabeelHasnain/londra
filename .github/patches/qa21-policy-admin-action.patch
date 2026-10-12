@@ -1,0 +1,22 @@
+--- a/app/Filament/Pages/Readiness.php
++++ b/app/Filament/Pages/Readiness.php
+@@ -47,7 +47,19 @@
+                         throw new \RuntimeException('Privacy database update incomplete. Review the secure application logs.');
+                     }
+                     Notification::make()->title('Privacy database update completed')->success()->send();
+                 }),
++            Action::make('stagePolicyDrafts')
++                ->label('Stage multilingual policies for review')
++                ->color('gray')
++                ->visible(fn(): bool => Schema::hasTable('pages') && is_file(database_path('content/policy_drafts.json')))
++                ->requiresConfirmation()
++                ->modalHeading('Import unapproved policy drafts')
++                ->modalDescription('Stage the English, Italian and Spanish policy drafts for review. Existing content and approved policies are not overwritten. No policies are published and no enquiries or search indexing are enabled.')
++                ->action(function (): void {
++                    $exit=Artisan::call('londra:stage-policy-drafts');
++                    if($exit!==0){throw new \RuntimeException('Policy staging was not completed. Review the private logs; existing policy content has not been replaced.');}
++                    Notification::make()->title('Policy drafts staged for review')->success()->send();
++                }),
+         ];
+     }
+ }
