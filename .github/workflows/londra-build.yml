@@ -28,6 +28,10 @@ on:
       - '.github/scripts/qa21_ImportPolicyDrafts.php'
       - '.github/scripts/qa21_PolicyDraftSmoke.php'
       - '.github/patches/qa21-policy-admin-action.patch'
+      - '.github/scripts/qa22_RecordSchedulerHeartbeat.php'
+      - '.github/scripts/qa22_HeartbeatSmoke.php'
+      - '.github/patches/qa22-heartbeat-readiness.patch'
+      - '.github/patches/qa22-cron-schedule.patch'
 
 permissions:
   contents: read
@@ -242,6 +246,14 @@ jobs:
           php -l londra/app/Console/Commands/ImportPolicyDrafts.php
           php -l londra/app/Filament/Pages/Readiness.php
           php -l londra/qa21_policy_smoke.php
+          cp .github/scripts/qa22_RecordSchedulerHeartbeat.php londra/app/Console/Commands/RecordSchedulerHeartbeat.php
+          cp .github/scripts/qa22_HeartbeatSmoke.php londra/qa22_heartbeat_smoke.php
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa22-heartbeat-readiness.patch
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa22-cron-schedule.patch
+          php -l londra/app/Console/Commands/RecordSchedulerHeartbeat.php
+          php -l londra/app/Services/ReadinessReport.php
+          php -l londra/routes/console.php
+          php -l londra/qa22_heartbeat_smoke.php
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
 
       - name: Resolve PHP dependencies and audit
@@ -311,7 +323,8 @@ jobs:
         run: |
           set -euo pipefail
           php qa21_policy_smoke.php
-          rm -f qa21_policy_smoke.php
+          php qa22_heartbeat_smoke.php
+          rm -f qa21_policy_smoke.php qa22_heartbeat_smoke.php
 
       - name: Verify actual Laravel HTTP responses in all three languages
         working-directory: londra
