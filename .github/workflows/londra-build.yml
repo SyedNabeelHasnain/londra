@@ -5,7 +5,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'londra-qa21-source.zip'
+      - '.github/workflows/londra-build.yml'
+      - 'londra-source.zip'
       - '.github/patches/privacy10.part*.txt'
       - '.github/patches/privacy10-fixture-adminid.patch'
       - '.github/tests/PrivacyAdminTest.php'
@@ -77,7 +78,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "1fc56db47051fd04c60e0118015c7789f55dc8a9838505f39c2eead96d3fc468  londra-qa21-source.zip" | sha256sum -c -
+          echo "613d76c8c02754da41e1bedca26a63cdd54be3b833bd7232cfe0d13d4da85e87  londra-source.zip" | sha256sum -c -
           mkdir -p "$GITHUB_WORKSPACE/londra"
           unzip -q londra-qa21-source.zip -d "$GITHUB_WORKSPACE/londra"
           test -f londra/composer.json
