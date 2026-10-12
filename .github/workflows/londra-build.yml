@@ -35,6 +35,7 @@ on:
       - '.github/patches/qa23-cron.php'
       - '.github/patches/qa24-cron-release.patch'
       - '.github/patches/qa25-operational-compliance.patch'
+      - '.github/patches/qa26-zoho-mail-only.patch'
 
 permissions:
   contents: read
@@ -267,6 +268,7 @@ jobs:
         run: |
           set -euo pipefail
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa25-operational-compliance.patch
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa26-zoho-mail-only.patch
           php -l londra/app/Domain/TransactionalMailPolicy.php
           php -l londra/app/Services/InquirySmtpSender.php
           php -l londra/app/Services/PrivacySmtpSender.php
@@ -276,10 +278,12 @@ jobs:
           require "londra/app/Domain/TransactionalMailPolicy.php";
           use App\Domain\TransactionalMailPolicy as Policy;
           $cases = [
-              ["smtp.zoho.com", true, false],
-              ["smtppro.zoho.eu", true, false],
-              ["smtp.zeptomail.eu", true, true],
+              ["smtp.zoho.com", true, true],
+              ["smtppro.zoho.eu", true, true],
+              ["smtp.zoho.com", false, false],
+              ["smtp.zeptomail.eu", true, false],
               ["smtp.zeptomail.eu", false, false],
+              ["smtp.zoho.com.attacker.invalid", true, false],
               ["", true, false],
           ];
           foreach ($cases as [$host, $approved, $expected]) {
