@@ -34,6 +34,7 @@ on:
       - '.github/patches/qa24-cron-release.patch'
       - '.github/patches/qa25-operational-compliance.patch'
       - '.github/patches/qa26-zoho-mail-only.patch'
+      - '.github/scripts/qa26_zoho_only.py'
 
 permissions:
   contents: read
@@ -232,7 +233,7 @@ jobs:
         run: |
           set -euo pipefail
           patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa25-operational-compliance.patch
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa26-zoho-mail-only.patch
+          python3 .github/scripts/qa26_zoho_only.py
           php -l londra/app/Domain/TransactionalMailPolicy.php
           php -l londra/app/Services/InquirySmtpSender.php
           php -l londra/app/Services/PrivacySmtpSender.php
