@@ -33,6 +33,7 @@ on:
       - '.github/patches/qa22-heartbeat-readiness.patch'
       - '.github/patches/qa22-cron-schedule.patch'
       - '.github/patches/qa23-cron.php'
+      - '.github/patches/qa24-cron-release.patch'
 
 permissions:
   contents: read
@@ -116,6 +117,7 @@ jobs:
               print('QA verified:', file['file'])
           PY
           cp .github/patches/qa23-cron.php londra/cron.php
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa24-cron-release.patch
 
       - name: Set up PHP 8.5 and Composer
         uses: shivammathur/setup-php@v2
@@ -362,6 +364,7 @@ jobs:
           bash tools/build-private-release.sh "$GITHUB_WORKSPACE/output"
           test -f "$GITHUB_WORKSPACE/output/Londra_Hostinger_Private_Public_Release.zip"
           unzip -tq "$GITHUB_WORKSPACE/output/Londra_Hostinger_Private_Public_Release.zip"
+          unzip -Z -1 "$GITHUB_WORKSPACE/output/Londra_Hostinger_Private_Public_Release.zip" | grep -Fx 'londra-private/cron.php'
           cat > "$GITHUB_WORKSPACE/output/READ_BEFORE_HOSTINGER_UPLOAD.txt" <<'ENDNOTE'
           This is a dependency-complete build candidate, NOT a validated one-click Hostinger installation.
           Install using separated private and public directories. Never upload the private Laravel folder into a public URL.
