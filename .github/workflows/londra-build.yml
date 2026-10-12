@@ -5,9 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/londra-build.yml'
-      - '.github/patches/qa07-delta.zlib.b64'
-      - '.github/patches/qa09-policy-publication-gates.patch'
+      - 'londra-qa21-source.zip'
       - '.github/patches/privacy10.part*.txt'
       - '.github/patches/privacy10-fixture-adminid.patch'
       - '.github/tests/PrivacyAdminTest.php'
@@ -78,48 +76,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "613d76c8c02754da41e1bedca26a63cdd54be3b833bd7232cfe0d13d4da85e87  londra-source.zip" | sha256sum -c -
+          echo "5bc21cdfe41dfb8cd34fffab92b858c8a0eb21014fb937a0463a32c8a60d5270  londra-qa21-source.zip" | sha256sum -c -
           mkdir -p "$GITHUB_WORKSPACE/londra"
-          unzip -q londra-source.zip -d "$GITHUB_WORKSPACE/londra"
+          unzip -q londra-qa21-source.zip -d "$GITHUB_WORKSPACE/londra"
           test -f londra/composer.json
           test -f londra/artisan
           test -f londra/package.json
           test ! -f londra/.env
           (cd londra && sha256sum -c SHA256SUMS.txt)
-
-      - name: Apply audited application fixes
-        shell: bash
-        run: |
-          set -euo pipefail
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/ci-2026-10-11.patch
-          php -l londra/app/Models/PageTranslation.php
-          php -l londra/tests/Feature/PortalTest.php
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/admin-mfa-optional-2026-10-11.patch
-          php -l londra/app/Providers/Filament/AdminPanelProvider.php
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/seo-absolute-images-qa08.patch
-          php -l londra/resources/views/site.blade.php
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa09-policy-publication-gates.patch
-          php -l londra/app/Services/PublicationState.php
-          php -l londra/app/Models/PageTranslation.php
-          php -l londra/app/Models/Page.php
-          php -l londra/app/Services/ReadinessReport.php
-          php -l londra/app/Http/Middleware/SecurityHeaders.php
-          python3 - <<'PY'
-          import base64, hashlib, json, zlib
-          from pathlib import Path
-          patch = json.loads(zlib.decompress(base64.b64decode(Path('.github/patches/qa07-delta.zlib.b64').read_text().strip())))
-          for file in patch:
-              path = Path('londra') / file['file']
-              old = path.read_text()
-              assert hashlib.sha256(old.encode()).hexdigest() == file['base_sha'], file['file']
-              for start, end, replacement in reversed(file['ops']):
-                  old = old[:start] + replacement + old[end:]
-              assert hashlib.sha256(old.encode()).hexdigest() == file['updated_sha'], file['file']
-              path.write_text(old)
-              print('QA verified:', file['file'])
-          PY
-          cp .github/patches/qa23-cron.php londra/cron.php
-          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa24-cron-release.patch
 
       - name: Set up PHP 8.5 and Composer
         uses: shivammathur/setup-php@v2
@@ -340,6 +304,9 @@ jobs:
           php artisan migrate --env=testing --force --no-interaction
           php artisan test --testsuite=Portal
           php artisan route:list --except-vendor > "$RUNNER_TEMP/londra-routes.txt"
+          php artisan route:list --except-vendor | grep -F 'privacy-request'
+          php artisan route:list --except-vendor | grep -F 'system-update'
+          test -f database/content/legal-review/2026-10-12-reviewed-copy-unapproved.json
 
       - name: Test additive privacy migration against preserved legacy enquiry
         working-directory: londra
@@ -432,4 +399,4 @@ jobs:
         shell: bash
         run: |
           echo 'GitHub Actions tests package resolution, compilation, source checks, isolated MySQL, and archive integrity.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'A passing workflow does NOT verify a one-click Hostinger install, live SMTP or production policies.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'A passing workflow verifies the synthetic MySQL runtime and compiled assets, not Hostinger deployment, live Zoho SMTP or legally approved business policies.' >> "$GITHUB_STEP_SUMMARY"
