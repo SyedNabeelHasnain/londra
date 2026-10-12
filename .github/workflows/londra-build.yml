@@ -25,6 +25,9 @@ on:
       - '.github/docs/HOSTINGER_NO_SSH_RELEASE.md'
       - '.github/patches/qa15-response-clock-from-receipt.patch'
       - '.github/patches/qa16-documented-holds.patch'
+      - '.github/scripts/qa21_ImportPolicyDrafts.php'
+      - '.github/scripts/qa21_PolicyDraftSmoke.php'
+      - '.github/patches/qa21-policy-admin-action.patch'
 
 permissions:
   contents: read
@@ -233,6 +236,12 @@ jobs:
           php -l londra/app/Http/Controllers/PrivacyRequestController.php
           php -l londra/resources/views/privacy/request.blade.php
           php -l londra/tests/Feature/PrivacyRightsTest.php
+          cp .github/scripts/qa21_ImportPolicyDrafts.php londra/app/Console/Commands/ImportPolicyDrafts.php
+          cp .github/scripts/qa21_PolicyDraftSmoke.php londra/qa21_policy_smoke.php
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa21-policy-admin-action.patch
+          php -l londra/app/Console/Commands/ImportPolicyDrafts.php
+          php -l londra/app/Filament/Pages/Readiness.php
+          php -l londra/qa21_policy_smoke.php
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
 
       - name: Resolve PHP dependencies and audit
@@ -295,6 +304,14 @@ jobs:
           php ../.github/scripts/qa20_legacy_upgrade.php verify
           php artisan migrate --env=testing --force --no-interaction
           php ../.github/scripts/qa20_legacy_upgrade.php verify
+
+      - name: Test guarded CMS staging of unpublished multilingual policies
+        working-directory: londra
+        shell: bash
+        run: |
+          set -euo pipefail
+          php qa21_policy_smoke.php
+          rm -f qa21_policy_smoke.php
 
       - name: Verify actual Laravel HTTP responses in all three languages
         working-directory: londra
