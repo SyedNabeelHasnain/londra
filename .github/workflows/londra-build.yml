@@ -32,6 +32,7 @@ on:
       - '.github/scripts/qa22_HeartbeatSmoke.php'
       - '.github/patches/qa22-heartbeat-readiness.patch'
       - '.github/patches/qa22-cron-schedule.patch'
+      - '.github/patches/qa23-cron.php'
 
 permissions:
   contents: read
@@ -114,6 +115,7 @@ jobs:
               path.write_text(old)
               print('QA verified:', file['file'])
           PY
+          cp .github/patches/qa23-cron.php londra/cron.php
 
       - name: Set up PHP 8.5 and Composer
         uses: shivammathur/setup-php@v2
@@ -139,6 +141,7 @@ jobs:
           composer validate --strict
           find app bootstrap config database lang resources routes tests -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l > "$RUNNER_TEMP/php-lint.txt"
           php -l artisan
+          php -l cron.php
           php tests/domain-checks.php
 
       - name: Apply checksummed privacy rights module
@@ -324,6 +327,7 @@ jobs:
           set -euo pipefail
           php qa21_policy_smoke.php
           php qa22_heartbeat_smoke.php
+          php cron.php
           rm -f qa21_policy_smoke.php qa22_heartbeat_smoke.php
 
       - name: Verify actual Laravel HTTP responses in all three languages
