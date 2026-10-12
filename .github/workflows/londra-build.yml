@@ -34,6 +34,7 @@ on:
       - '.github/patches/qa22-cron-schedule.patch'
       - '.github/patches/qa23-cron.php'
       - '.github/patches/qa24-cron-release.patch'
+      - '.github/patches/qa25-operational-compliance.patch'
 
 permissions:
   contents: read
@@ -260,6 +261,32 @@ jobs:
           php -l londra/routes/console.php
           php -l londra/qa22_heartbeat_smoke.php
           find londra/app londra/database/migrations londra/routes londra/tests -name '*.php' -type f -print0 | xargs -0 -n1 php -l > "$RUNNER_TEMP/qa10-lint.txt"
+
+      - name: Enforce transactional mail and privacy readiness safeguards
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch --fuzz=0 --batch -d londra -p1 < .github/patches/qa25-operational-compliance.patch
+          php -l londra/app/Domain/TransactionalMailPolicy.php
+          php -l londra/app/Services/InquirySmtpSender.php
+          php -l londra/app/Services/PrivacySmtpSender.php
+          php -l londra/app/Services/ReadinessReport.php
+          php -l londra/config/londra.php
+          php -r '
+          require "londra/app/Domain/TransactionalMailPolicy.php";
+          use App\Domain\TransactionalMailPolicy as Policy;
+          $cases = [
+              ["smtp.zoho.com", true, false],
+              ["smtppro.zoho.eu", true, false],
+              ["smtp.zeptomail.eu", true, true],
+              ["smtp.zeptomail.eu", false, false],
+              ["", true, false],
+          ];
+          foreach ($cases as [$host, $approved, $expected]) {
+              if (Policy::allowed($host, $approved) !== $expected) { exit(1); }
+          }
+          echo "Transactional SMTP policy checks passed.\n";
+          '
 
       - name: Resolve PHP dependencies and audit
         working-directory: londra
