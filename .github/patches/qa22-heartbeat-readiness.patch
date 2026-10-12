@@ -1,0 +1,36 @@
+--- a/app/Services/ReadinessReport.php
++++ b/app/Services/ReadinessReport.php
+@@ -1,8 +1,8 @@
+ <?php
+ declare(strict_types=1);
+ namespace App\Services;
+-use App\Models\{Page,User};
++use App\Models\{Page,User,Setting};
+ use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Schema;
+ final class ReadinessReport
+ {
+@@ -27,8 +27,13 @@
+         try { $connection=(int)DB::select('SELECT 1 AS healthy')[0]->healthy===1; } catch (\Throwable) {}
+         $pages=$connection ? Page::with('translations')->get() : collect();
+         $unfinished=$pages->filter(fn(Page $page)=>$page->published && $page->translations->where('ready',true)->count()!==3)->count();
+         $policies=$pages->where('kind','policy')->filter(fn(Page $page)=>$page->published&&$page->approved_at)->count();
++        $heartbeat=($connection ? Setting::find('scheduler-heartbeat')?->value : null);
++        $cronOk=false;
++        if(is_array($heartbeat)&&is_string($heartbeat['last_ran_at']??null)){
++            try{$at=\Illuminate\Support\Carbon::parse($heartbeat['last_ran_at']);$cronOk=$at->betweenIncluded(now()->subMinutes(15),now()->addMinute());}catch(\Throwable){}
++        }
+         return [
+             ['label'=>'PHP 8.5 compatibility','ok'=>PHP_VERSION_ID>=80504&&PHP_VERSION_ID<80600,'detail'=>PHP_VERSION],
+             ['label'=>'Required PHP extensions','ok'=>$missing===[],'detail'=>$missing?implode(', ',$missing):'Available'],
+             ['label'=>'MySQL connection','ok'=>$connection,'detail'=>$connection?'Query succeeded':'Not verified'],
+@@ -39,8 +44,9 @@
+             ['label'=>'Preview protection disabled for approved launch','ok'=>!config('londra.preview'),'detail'=>'Keep protection enabled until acceptance checks have passed.'],
+             ['label'=>'Publication explicitly approved','ok'=>(bool)config('londra.publication_approved'),'detail'=>'Business approval is separate from software testing.'],
+             ['label'=>'Privacy explicitly approved','ok'=>(bool)config('londra.privacy_approved'),'detail'=>'Requires accurate retention and processing information.'],
+             ['label'=>'Notification processing enabled','ok'=>(bool)config('londra.send_notifications'),'detail'=>'Actual SMTP sending, failures and cron execution still require live testing.'],
++            ['label'=>'Cron scheduler heartbeat','ok'=>$cronOk,'detail'=>$cronOk?'Scheduled PHP successfully recorded a recent execution':'No verified scheduler execution during the last 15 minutes.'],
+             ['label'=>'Public stylesheet and script files staged','ok'=>$this->hasPublicAssets(),'detail'=>'Static frontend assets are staged; this does not certify the Filament package assets or a reproducible Vite build.'],
+             ['label'=>'Debug information disabled','ok'=>!config('app.debug'),'detail'=>'Never expose production exception details.'],
+         ];
+     }
