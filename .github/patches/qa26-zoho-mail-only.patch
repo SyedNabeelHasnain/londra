@@ -1,0 +1,18 @@
+--- a/app/Domain/TransactionalMailPolicy.php
++++ b/app/Domain/TransactionalMailPolicy.php
+@@ -7,6 +7,6 @@
+     {
+         $hostname = strtolower(trim($host));
+         if (!$ownerApproved || $hostname === '') { return false; }
+-        return preg_match('~^(?:smtp|smtppro)\.zoho\.(?:com|eu|in|com\.au)$~D', $hostname) !== 1;
++        return preg_match('~^(?:smtp|smtppro)\.zoho\.(?:com|eu|in|com\.au)$~D', $hostname) === 1;
+     }
+ }
+--- a/app/Services/ReadinessReport.php
++++ b/app/Services/ReadinessReport.php
+@@ -45,5 +45,5 @@
+             ['label'=>'Publication explicitly approved','ok'=>(bool)config('londra.publication_approved'),'detail'=>'Business approval is separate from software testing.'],
+             ['label'=>'Privacy explicitly approved','ok'=>(bool)config('londra.privacy_approved'),'detail'=>'Requires accurate retention and processing information.'],
+-            ['label'=>'Transactional SMTP provider permitted','ok'=>\App\Domain\TransactionalMailPolicy::allowed((string)config('mail.mailers.smtp.host',''),(bool)config('londra.transactional_mail_approved')),'detail'=>'Zoho Mail SMTP prohibits automated and transactional notifications. Use an authorised transactional sender, document approval, and verify SPF/DKIM/DMARC before enabling delivery.'],
++            ['label'=>'Zoho Mail SMTP permission confirmed','ok'=>\App\Domain\TransactionalMailPolicy::allowed((string)config('mail.mailers.smtp.host',''),(bool)config('londra.transactional_mail_approved')),'detail'=>'Zoho Mail SMTP is the only permitted sender. Its ordinary Mail usage policy forbids automated/transactional emails: keep notifications disabled until Zoho confirms an account-specific exception. Verify SPF, DKIM, DMARC and test actual sending before activation.'],
+             ['label'=>'Notification processing enabled','ok'=>(bool)config('londra.send_notifications'),'detail'=>'Actual SMTP sending, failures and cron execution still require live testing.'],
