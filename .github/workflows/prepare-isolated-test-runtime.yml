@@ -48,11 +48,12 @@ jobs:
           import subprocess,re,shutil
           from pathlib import Path
           root=Path('runtime/php')
+          glibc={'libc.so.6','ld-linux-x86-64.so.2','libm.so.6','libresolv.so.2','libpthread.so.0','libdl.so.2','librt.so.1'}
           for binary in [root/'bin/php',*sorted((root/'ext').glob('*.so'))]:
               result=subprocess.run(['ldd',str(binary)],capture_output=True,text=True,check=True)
               for absolute in re.findall(r'(?:=>\s+)?(/[^\s]+)',result.stdout):
                   path=Path(absolute)
-                  if path.is_file() and path.name not in ['libc.so.6','ld-linux-x86-64.so.2']:
+                  if path.is_file() and path.name not in glibc:
                       shutil.copy2(path,root/'lib'/path.name)
           PY
           cp -a londra-private/vendor runtime/reference/vendor
@@ -62,14 +63,14 @@ jobs:
           php -i | grep -E 'PHP Version|extension_dir|WebP|ICU version' > runtime/php-build.txt
       - name: Export an isolated MySQL 8.4 engine and its private dependencies
         run: |
-          docker pull mysql:8.4
+          docker pull mysql@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70
           mkdir -p runtime/mysql
-          docker run --rm --user root --entrypoint bash -v "$PWD/runtime/mysql:/export" mysql:8.4 -ec '
+          docker run --rm --user root --entrypoint bash -v "$PWD/runtime/mysql:/export" mysql@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70 -ec '
             mkdir -p /export/bin /export/lib /export/share
             for executable in mysqld mysql mysqladmin; do cp "$(command -v "$executable")" /export/bin/; done
             for executable in /export/bin/*; do
               ldd "$executable" | awk "{for(i=1;i<=NF;i++) if(\$i ~ /^\//) print \$i}" | while read -r library; do
-                case "$(basename "$library")" in libc.so.6|ld-linux-x86-64.so.2) continue;; esac
+                case "$(basename "$library")" in libc.so.6|ld-linux-x86-64.so.2|libm.so.6|libresolv.so.2|libpthread.so.0|libdl.so.2|librt.so.1) continue;; esac
                 cp -L "$library" /export/lib/
               done
             done
@@ -77,15 +78,16 @@ jobs:
             if [ -d /usr/lib64/mysql/plugin ]; then mkdir -p /export/lib/plugin; cp -a /usr/lib64/mysql/plugin/. /export/lib/plugin/; fi
             mysqld --version > /export/version.txt
           '
+          sudo chown -R "$(id -u):$(id -g)" runtime/mysql
           chmod -R a+rX runtime
       - name: Verify no production environment or records are included
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import json,hashlib,zipfile
+          import json,zipfile
           root=Path('runtime')
-          forbidden=[p for p in root.rglob('*') if p.is_file() and (p.name=='.env' or p.suffix in ('.sql','.sqlite'))]
-          if forbidden:raise SystemExit('Unexpected environment or database file')
+          forbidden=[p for p in root.rglob('*') if p.is_file() and (p.name=='.env' or p.suffix in ('.sqlite','.sqlite3') or (p.suffix=='.sql' and 'mysql/share' not in p.as_posix()))]
+          if forbidden:raise SystemExit('Unexpected environment or database file: '+', '.join(map(str,forbidden)))
           files=[p for p in root.rglob('*') if p.is_file()]
           Path('runtime-manifest.json').write_text(json.dumps({'base_commit':'97da842dcf8593fe84bdba2d17d73d2fd6f97b70','purpose':'Isolated local verification only; not a website release','files':len(files),'mysql':'8.4','php':'8.5'},indent=2))
           with zipfile.ZipFile('Londra_Isolated_Test_Runtime.zip','w',zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
