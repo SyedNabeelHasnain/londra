@@ -15,6 +15,17 @@ final class PublicPresentationTest extends TestCase
         $dom->loadHTML('<?xml encoding="UTF-8">'.$html, LIBXML_NOERROR | LIBXML_NOWARNING);
         return new \DOMXPath($dom);
     }
+    private function normalizedJsonObjects(mixed $value): mixed
+    {
+        if (!is_array($value)) { return $value; }
+        $isList = array_is_list($value);
+        if (!$isList) { ksort($value); }
+        return [$isList ? 'list' : 'object', array_map($this->normalizedJsonObjects(...), $value)];
+    }
+    private function assertJsonContentSame(mixed $expected, mixed $actual, string $message = ''): void
+    {
+        $this->assertSame($this->normalizedJsonObjects($expected), $this->normalizedJsonObjects($actual), $message);
+    }
     public function test_all_public_pages_have_complete_text_and_no_internal_copy(): void
     {
         foreach (Page::where('kind','policy')->with('translations')->get() as $policy) {
@@ -105,13 +116,61 @@ final class PublicPresentationTest extends TestCase
         $this->assertSame($latest['chauffeur-service']['sort_order'], (int) $chauffeur->fresh()->sort_order);
         $this->assertSame(73, (int) $privateClients->fresh()->sort_order);
         $faq->refresh();
-        foreach (['en','it'] as $locale) { $this->assertSame($latest['faqs']['translations'][$locale]['faq_items'], $faq->translation($locale)->faq_items); }
-        $this->assertSame($customFaq, $faq->translation('es')->faq_items);
+        foreach (['en','it'] as $locale) { $this->assertJsonContentSame($latest['faqs']['translations'][$locale]['faq_items'], $faq->translation($locale)->faq_items); }
+        $this->assertJsonContentSame($customFaq, $faq->translation('es')->faq_items);
         $this->assertSame('guests', Setting::findOrFail('interface-copy')->value['en']['passengers']);
         $this->assertSame('Our individually maintained vehicle guidance.', Setting::findOrFail('interface-copy')->value['en']['fleet_notes']);
         $chauffeur->update(['sort_order'=>72]);
         app(ReleaseUpdater::class)->run();
         $this->assertSame(72, (int) $chauffeur->fresh()->sort_order);
+    }
+    public function test_reordered_faq_object_members_update_defaults_without_overwriting_owner_text_or_question_order(): void
+    {
+        $previous = json_decode(file_get_contents(database_path('content/previous-public-copy-2026-10-12.2.json')), true, 512, JSON_THROW_ON_ERROR);
+        $old = array_column($previous['pages'], null, 'key')['faqs']['translations'];
+        $latest = array_column(json_decode(file_get_contents(database_path('content/pages.json')), true, 512, JSON_THROW_ON_ERROR), null, 'key')['faqs']['translations'];
+        $reorderedObjects = array_map(static fn(array $item): array => array_reverse($item, true), $old['en']['faq_items']);
+        $ownerText = $old['it']['faq_items'];
+        $ownerText[0]['a'] = 'Una risposta approvata individualmente dal proprietario.';
+        $ownerQuestionOrder = array_reverse($old['es']['faq_items']);
+        $faq = Page::with('translations')->where('key', 'faqs')->firstOrFail();
+        foreach(['en' => $reorderedObjects, 'it' => $ownerText, 'es' => $ownerQuestionOrder] as $locale => $items) {
+            $faq->translation($locale)->update(['faq_items' => $items]);
+        }
+        $this->assertNotSame($old['en']['faq_items'], $reorderedObjects);
+        $this->assertGreaterThan(count($old['en']['faq_items']), count($latest['en']['faq_items']));
+        app(\App\Services\PublicContentUpdater::class)->run();
+        $faq->refresh();
+        $this->assertJsonContentSame($latest['en']['faq_items'], $faq->translation('en')->faq_items);
+        $this->assertJsonContentSame($ownerText, $faq->translation('it')->faq_items);
+        $this->assertJsonContentSame($ownerQuestionOrder, $faq->translation('es')->faq_items);
+        app(\App\Services\PublicContentUpdater::class)->run();
+        $faq->refresh();
+        $this->assertJsonContentSame($latest['en']['faq_items'], $faq->translation('en')->faq_items);
+        $this->assertJsonContentSame($ownerText, $faq->translation('it')->faq_items);
+        $this->assertJsonContentSame($ownerQuestionOrder, $faq->translation('es')->faq_items);
+    }
+    public function test_json_content_matching_ignores_nested_object_member_order_but_preserves_lists_and_scalar_types(): void
+    {
+        $updater = app(\App\Services\PublicContentUpdater::class);
+        $comparison = new \ReflectionMethod($updater, 'contentValuesMatch');
+        $expected = ['metadata' => ['verified' => true, 'capacity' => 3], 'items' => [['q' => 'First question', 'a' => 'First answer'], ['q' => 'Second question', 'a' => 'Second answer']], 'nullable' => null];
+        $reordered = ['nullable' => null, 'items' => [['a' => 'First answer', 'q' => 'First question'], ['a' => 'Second answer', 'q' => 'Second question']], 'metadata' => ['capacity' => 3, 'verified' => true]];
+        $this->assertTrue($comparison->invoke($updater, $expected, $reordered));
+        $this->assertTrue($comparison->invoke($updater, $reordered, $expected));
+        $variants = [];
+        $variant = $reordered; $variant['items'] = array_reverse($variant['items']); $variants['question list order'] = $variant;
+        $variant = $reordered; $variant['items'][0]['a'] = 'An individually written answer'; $variants['nested owner text'] = $variant;
+        $variant = $reordered; $variant['metadata']['capacity'] = '3'; $variants['integer changed to string'] = $variant;
+        $variant = $reordered; $variant['metadata']['capacity'] = 3.0; $variants['integer changed to float'] = $variant;
+        $variant = $reordered; $variant['metadata']['verified'] = 1; $variants['boolean changed to integer'] = $variant;
+        $variant = $reordered; $variant['nullable'] = ''; $variants['null changed to empty string'] = $variant;
+        $variant = $reordered; unset($variant['nullable']); $variants['null object member removed'] = $variant;
+        $variant = $reordered; $variant['metadata']['owner'] = true; $variants['nested object member added'] = $variant;
+        foreach($variants as $label => $value) { $this->assertFalse($comparison->invoke($updater, $expected, $value), $label); }
+        $this->assertFalse($comparison->invoke($updater, [1 => 'first', 0 => 'second'], ['second', 'first']), 'A JSON object is not an ordered JSON list.');
+        $this->assertFalse($comparison->invoke($updater, false, 0));
+        $this->assertFalse($comparison->invoke($updater, null, ''));
     }
     public function test_language_revision_updates_installed_defaults_and_preserves_owner_edits(): void
     {
@@ -137,7 +196,7 @@ final class PublicPresentationTest extends TestCase
             foreach (['it','es'] as $locale) {
                 foreach ($fields as $field) {
                     $expected = $key === 'home' && $locale === 'it' && $field === 'intro' ? 'Il testo personalizzato del proprietario.' : $latest[$key]['translations'][$locale][$field];
-                    $this->assertSame($expected, $page->translation($locale)->getAttribute($field), $key.' '.$locale.' '.$field);
+                    $this->assertJsonContentSame($expected, $page->translation($locale)->getAttribute($field), $key.' '.$locale.' '.$field);
                 }
                 if ($page->kind === 'policy') {
                     $this->assertFalse($page->published);
@@ -182,7 +241,7 @@ final class PublicPresentationTest extends TestCase
         foreach(['home','private-transfers','e-class','faqs'] as $pageKey){
             $page=Page::with('translations')->where('key',$pageKey)->firstOrFail();
             foreach(['en','it','es'] as $locale){
-                foreach($fields as $field){$this->assertSame($latest[$pageKey]['translations'][$locale][$field],$page->translation($locale)->getAttribute($field),$pageKey.' '.$locale.' '.$field);}
+                foreach($fields as $field){$this->assertJsonContentSame($latest[$pageKey]['translations'][$locale][$field],$page->translation($locale)->getAttribute($field),$pageKey.' '.$locale.' '.$field);}
                 $expected=$pageKey==='e-class'&&$locale==='es'?'Una sección revisada individualmente.':($latest[$pageKey]['translations'][$locale]['detail_heading']??null);
                 $this->assertSame($expected,$page->translation($locale)->detail_heading);
             }

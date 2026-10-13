@@ -28,8 +28,8 @@ final class PublicContentUpdater
                     $value = $stored->getAttribute($field);
                     $oldValues = array_map(static fn($page) => $page['translations'][$locale][$field] ?? null, $old);
                     $proposed = $translation[$field] ?? null;
-                    if ($value === $proposed) { continue; }
-                    if (in_array($value, $oldValues, true) || ($field==='body' && trim((string) $value)==='') || $this->containsInternalCopy($value)) {
+                    if ($this->contentValuesMatch($value, $proposed)) { continue; }
+                    if ($this->matchesPreviousContent($value, $oldValues) || ($field==='body' && trim((string) $value)==='') || $this->containsInternalCopy($value)) {
                         $changes[$field] = $proposed;
                     }
                 }
@@ -66,6 +66,20 @@ final class PublicContentUpdater
             }
         }
         $setting->update(['value' => $saved]);
+    }
+    private function matchesPreviousContent(mixed $value, array $previousValues): bool
+    {
+        foreach ($previousValues as $previous) { if ($this->contentValuesMatch($value, $previous)) { return true; } }
+        return false;
+    }
+    private function contentValuesMatch(mixed $left, mixed $right): bool
+    {
+        if (!is_array($left) || !is_array($right)) { return $left === $right; }
+        if (count($left) !== count($right) || array_is_list($left) !== array_is_list($right)) { return false; }
+        foreach ($left as $key => $value) {
+            if (!array_key_exists($key, $right) || !$this->contentValuesMatch($value, $right[$key])) { return false; }
+        }
+        return true;
     }
     private function containsInternalCopy(mixed $value): bool
     {
