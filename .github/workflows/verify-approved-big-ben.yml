@@ -1,0 +1,51 @@
+name: Verify approved Big Ben image copies
+on:
+  push:
+    branches: ['work/approved-tour-gallery-2026-10-14']
+    paths: ['.github/workflows/verify-approved-big-ben.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - run: python -m pip install Pillow==11.3.0
+      - name: Retrieve publicly accessible image copies and preserve provenance
+        run: |
+          mkdir -p big-ben-verification
+          python - <<'PY'
+          import hashlib,json,urllib.request
+          from pathlib import Path
+          from PIL import Image,ExifTags
+          rows=[
+            ('pixabay-preview','https://cdn.pixabay.com/photo/2022/04/06/20/30/big-ben-7116305_1280.jpg'),
+            ('publisher-unscaled','https://www.zelenaslovenija.si/wp-content/uploads/2026/10/mathewbrowne-big-ben-7116305.jpg'),
+            ('efmd-unscaled','https://blog.efmdglobal.org/wp-content/uploads/2023/06/big-ben-7116305.jpg')
+          ]
+          out=Path('big-ben-verification');report=[]
+          for key,url in rows:
+              record={'copy':key,'url':url,'license_source':'https://pixabay.com/photos/big-ben-tower-london-england-city-7116305/','approved_id':'L03','publisher_copy_not_yet_accepted':True}
+              try:
+                  req=urllib.request.Request(url,headers={'User-Agent':'LondraTransfersMediaPreparation/1.0 (approved photograph verification)'})
+                  with urllib.request.urlopen(req,timeout=60) as response:data=response.read(20000001)
+                  if len(data)>20000000:raise ValueError('Maximum file size exceeded')
+                  path=out/(key+'.jpg');path.write_bytes(data)
+                  with Image.open(path) as im:
+                      im.load()
+                      record.update(dimensions=im.size,sha256=hashlib.sha256(data).hexdigest(),bytes=len(data),format=im.format,metadata={ExifTags.TAGS.get(k,str(k)):str(v)[:600] for k,v in im.getexif().items() if k in (315,33432,270,271,272,306,36867)})
+                  print(key,record['dimensions'],record.get('metadata'))
+              except Exception as error:
+                  record['error']=str(error)
+                  path=out/(key+'.jpg')
+                  if path.exists():path.unlink()
+              report.append(record)
+          (out/'verification.json').write_text(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: Londra-Big-Ben-Source-Verification
+          path: big-ben-verification/
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
