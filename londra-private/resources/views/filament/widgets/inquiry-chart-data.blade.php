@@ -1,0 +1,1 @@
+<table><caption>Retained enquiries by London calendar day</caption><thead><tr><th scope="col">Date</th><th scope="col">Enquiries</th></tr></thead><tbody>@foreach($days as $day)<tr><th scope="row">{{ $day['date'] }}</th><td>{{ $day['count'] }}</td></tr>@endforeach</tbody></table>

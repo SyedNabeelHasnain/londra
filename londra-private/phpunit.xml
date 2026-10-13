@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php" colors="true" cacheDirectory=".phpunit.cache">
+    <testsuites><testsuite name="Portal"><directory>tests/Feature</directory></testsuite></testsuites>
+    <php><env name="APP_ENV" value="testing" force="true"/><env name="APP_DEBUG" value="false"/><env name="CACHE_STORE" value="array"/><env name="SESSION_DRIVER" value="array"/><env name="MAIL_MAILER" value="array"/><env name="QUEUE_CONNECTION" value="database"/></php>
+</phpunit>

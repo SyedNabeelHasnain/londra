@@ -1,0 +1,1 @@
+<x-filament-panels::page><p>Database deletion follows the approved period. Zoho mailbox copies, downloads and hosting backups require the recorded operational process.</p><form wire:submit="save">{{ $this->form }}<x-filament::button type="submit" class="mt-6">Save privacy operations</x-filament::button></form></x-filament-panels::page>

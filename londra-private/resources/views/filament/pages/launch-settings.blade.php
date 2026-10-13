@@ -1,0 +1,1 @@
+<x-filament-panels::page><p>These controls use the existing private configuration. They do not replace Zoho Mail, alter administrator credentials or confirm transport bookings.</p><form wire:submit="save">{{ $this->form }}<x-filament::button type="submit" class="mt-6">Save website operation</x-filament::button></form></x-filament-panels::page>

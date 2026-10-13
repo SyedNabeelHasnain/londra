@@ -1,9 +1,0 @@
---- a/routes/console.php
-+++ b/routes/console.php
-@@ -1,5 +1,6 @@
- <?php
- use Illuminate\Support\Facades\Schedule;
-+Schedule::command('londra:scheduler-heartbeat')->everyFiveMinutes()->withoutOverlapping(3);
- Schedule::command('queue:work database --stop-when-empty --max-time=40 --tries=3 --timeout=30')->everyMinute()->withoutOverlapping(3);
- Schedule::command('londra:retry-pending-notifications')->everyFiveMinutes()->withoutOverlapping(3);
- Schedule::command('londra:retention --apply')->dailyAt('03:20')->timezone('Europe/London')->withoutOverlapping(30);

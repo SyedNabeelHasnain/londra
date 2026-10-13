@@ -1,9 +1,0 @@
---- a/tools/build-private-release.sh
-+++ b/tools/build-private-release.sh
-@@ -23,5 +23,6 @@
- mkdir -p "$work/londra-private" "$work/public_html" "$OUT"
- cp -a app bootstrap config database lang resources routes storage vendor artisan composer.json composer.lock .env.example "$work/londra-private/"
-+cp cron.php "$work/londra-private/cron.php"
- cp -a public/. "$work/public_html/"
- cat > "$work/public_html/index.php" <<'PHP'
- <?php

@@ -1,0 +1,46 @@
+[
+  {
+    "code": "e-class",
+    "name": "Mercedes-Benz E-Class",
+    "passengers": 3,
+    "image_key": "mercedes-e-class",
+    "page_key": "e-class",
+    "sort_order": 0,
+    "large_luggage": null,
+    "cabin_luggage": null,
+    "luggage_approved": false
+  },
+  {
+    "code": "s-class",
+    "name": "Mercedes-Benz S-Class",
+    "passengers": 3,
+    "image_key": "mercedes-s-class",
+    "page_key": "s-class",
+    "sort_order": 1,
+    "large_luggage": null,
+    "cabin_luggage": null,
+    "luggage_approved": false
+  },
+  {
+    "code": "v-class",
+    "name": "Mercedes-Benz V-Class",
+    "passengers": 7,
+    "image_key": "mercedes-v-class",
+    "page_key": "v-class",
+    "sort_order": 2,
+    "large_luggage": null,
+    "cabin_luggage": null,
+    "luggage_approved": false
+  },
+  {
+    "code": "vito",
+    "name": "Mercedes-Benz Vito",
+    "passengers": 8,
+    "image_key": "mercedes-vito",
+    "page_key": "vito",
+    "sort_order": 3,
+    "large_luggage": null,
+    "cabin_luggage": null,
+    "luggage_approved": false
+  }
+]
