@@ -1,0 +1,144 @@
+name: Londra visual review and fleet reference research
+on:
+  push:
+    branches: [work/ui-visual-review-2026-10-14]
+    paths: [.github/workflows/visual-review-confirmed-2026-10-14.yml]
+permissions:
+  contents: read
+jobs:
+  visual:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - run: |
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+      - run: |
+          mkdir -p evidence
+          cat > /tmp/review.py <<'PY'
+          import asyncio,json,pathlib,re
+          from urllib.parse import urlparse
+          from bs4 import BeautifulSoup
+          from playwright.async_api import async_playwright
+          out=pathlib.Path('evidence'); origin='https://londratransfers.co.uk'
+          async def main():
+              async with async_playwright() as p:
+                  browser=await p.chromium.launch()
+                  ctx=await browser.new_context(viewport={'width':1760,'height':1000})
+                  blocked=[]; errors=[];bad=[];records=[];links=set()
+                  async def guard(route):
+                      r=route.request;u=urlparse(r.url)
+                      unsafe=re.search(r'^/(?:londra-(?:recover|install|update)[^/]*|admin(?:/|$)|logout(?:/|$)|password(?:/|$))',u.path,re.I)
+                      if r.method not in ('GET','HEAD') or u.hostname not in ('londratransfers.co.uk','www.londratransfers.co.uk') or unsafe:
+                          blocked.append({'method':r.method,'url':r.url.split('?')[0]});await route.abort()
+                      else:await route.continue_()
+                  await ctx.route('**/*',guard)
+                  page=await ctx.new_page()
+                  page.on('pageerror',lambda e:errors.append(str(e)))
+                  page.on('response',lambda r:bad.append({'status':r.status,'url':r.url}) if r.status>=400 else None)
+                  for path in ['/en','/en/about','/en/fleet','/en/tours','/en/contact','/it','/es','/en/tours/london','/en/tours/beyond-london']:
+                      for w,h in [(1760,1000),(1024,900),(390,844)]:
+                          await page.set_viewport_size({'width':w,'height':h})
+                          try:
+                              r=await page.goto(origin+path,wait_until='networkidle',timeout=60000)
+                              await page.evaluate('async()=>{for(let y=0;y<document.body.scrollHeight;y+=900){scrollTo(0,y);await new Promise(r=>setTimeout(r,90));}scrollTo(0,0)}')
+                              await page.wait_for_timeout(800)
+                              slug=path.strip('/').replace('/','-')
+                              await page.screenshot(path=str(out/f'{slug}-{w}.png'),full_page=True)
+                              a=await page.evaluate('''()=>({title:document.title,overflow:document.documentElement.scrollWidth>innerWidth,bodyWidth:document.documentElement.scrollWidth,styled:getComputedStyle(document.body).backgroundColor,h1:[...document.querySelectorAll('h1')].map(e=>e.textContent.trim()),brokenImages:[...document.images].filter(i=>i.getBoundingClientRect().width&&(!i.complete||!i.naturalWidth)).map(i=>i.currentSrc||i.src),notes:[...document.querySelectorAll('.photo-credit')].map(e=>e.textContent.trim()),forms:[...document.forms].map(f=>({disabled:!!f.querySelector('fieldset:disabled'),notice:f.querySelector('.form-availability')?.textContent})),robots:document.querySelector('meta[name=robots]')?.content,brand:[...document.querySelectorAll('.header-brand .emblem-stack,.header-brand .wordmark')].map(e=>({cls:e.className,w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height}))})''')
+                              a.update({'path':path,'width':w,'status':r.status})
+                              if w==1760:
+                                  soup=BeautifulSoup(await page.content(),'html.parser')
+                                  for el in soup.select('input[type=hidden]'):el['value']=''
+                                  (out/f'{slug}.html').write_text(str(soup))
+                                  links.update(await page.locator('a[href]').evaluate_all('(es)=>es.map(e=>e.href)'))
+                                  top=page.locator('.back-top');await top.scroll_into_view_if_needed()
+                                  before=await page.evaluate('scrollY');await top.click();await page.wait_for_timeout(1800)
+                                  a['backTop']={'before':before,'after':await page.evaluate('scrollY')}
+                                  if path=='/en/about':
+                                      await page.locator('[data-theme-toggle]').click();await page.screenshot(path=str(out/'en-about-light.png'),full_page=True);await page.locator('[data-theme-toggle]').click()
+                              if w==390 and path=='/en/about':
+                                  await page.locator('[data-open-navigation]:visible').first.click();await page.wait_for_timeout(500);await page.screenshot(path=str(out/'mobile-navigation.png'));await page.keyboard.press('Escape')
+                                  await page.locator('[data-open-enquiry]:visible').first.click();await page.wait_for_timeout(500);await page.screenshot(path=str(out/'mobile-enquiry.png'));await page.keyboard.press('Escape')
+                              records.append(a)
+                          except Exception as e:records.append({'path':path,'width':w,'error':str(e)})
+                          (out/'visual-results.json').write_text(json.dumps({'records':records,'errors':errors,'failedResponses':bad,'blocked':blocked},indent=2))
+                  paths=sorted({urlparse(x).path for x in links if x.startswith(origin+'/') and re.match(r'^/(en|it|es)(/|$)',urlparse(x).path)})
+                  crawl=[]
+                  for path in paths:
+                      r=await ctx.request.get(origin+path,timeout=30000)
+                      soup=BeautifulSoup(await r.text(),'html.parser')
+                      crawl.append({'path':path,'status':r.status,'title':soup.title.get_text() if soup.title else '', 'h1':len(soup.select('h1'))})
+                      await asyncio.sleep(.25)
+                  (out/'public-routes.json').write_text(json.dumps(crawl,indent=2))
+                  for path in ['/robots.txt','/sitemap.xml']:
+                      r=await ctx.request.get(origin+path,timeout=30000)
+                      (out/(path.strip('/')+'.txt')).write_text(str(r.status)+'\n'+(await r.text())[:25000])
+                  (out/'scope.txt').write_text('Read-only public requests; no login, submissions, database access or deployment.\n')
+                  await browser.close()
+          asyncio.run(main())
+          PY
+          python /tmp/review.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Confirmed-Live-Visual-Evidence
+          path: evidence/
+          retention-days: 7
+  photo_research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - run: python -m pip install requests beautifulsoup4 Pillow
+      - run: |
+          mkdir -p reference
+          cat > /tmp/photos.py <<'PY'
+          import requests,bs4,json,re,io,pathlib,concurrent.futures
+          from urllib.parse import urljoin,urlparse,unquote
+          from PIL import Image
+          out=pathlib.Path('reference')
+          pages=[('E','https://www.homejames.info/fleet/mercedes-e-class'),('S','https://www.homejames.info/fleet/mercedes-s-class'),('V','https://www.homejames.info/fleet/mercedes-v-class'),('T','https://www.executivecarsderby.co.uk/mercedes-benz-vito-mpv/'),('E','https://www.executivecarsderby.co.uk/mercedes-benz-e-class/'),('E','https://www.mekhe.com/en/fleet/limousine1/mercedes-benz-e-class'),('V','https://car-transfers.com/en/cars/mercedes-benz-v-class/'),('T','https://www.bristolchauffeurcars.co.uk/fleet/mercedes-vito'),('S','https://www.sybarischauffeurs.com/executive-chauffeured-cars/mercedes-s%E2%80%91class/'),('EV','https://vanbudapest.com/2026/05/19/mercedes-fleet-photoshoot-new-photos-2026/'),('E','https://bg-trans.eu/mercedes-benz-e-class-320cdi/'),('E','https://viptransfers.pl/en/car/mercedes-e-class-vip/'),('T','https://rentalvan.eu/en/mercedes-vito-viano-9-seats')]
+          headers={'User-Agent':'Mozilla/5.0 (compatible; visual-reference-research)'}
+          def page_task(item):
+              idx,(model,page)=item;records=[]
+              try:
+                  r=requests.get(page,headers=headers,timeout=35);r.raise_for_status();s=bs4.BeautifulSoup(r.text,'html.parser')
+                  (out/f'page-{idx:02}.html').write_text(r.text)
+                  urls={}
+                  for el in s.select('img,source,a,div,script[type="application/json"]'):
+                      for k in ['src','data-src','data-lazy-src','data-original','href','srcset','data-srcset','style']:
+                          raw=el.get(k,'')
+                          for u in re.findall(r'(?:https?:)?//[^\s"\'<>),]+|(?:/[^\s"\'<>),]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"\'<>),]*)?)',str(raw)):
+                              u=urljoin(page,u)
+                              if re.search(r'\.(?:jpe?g|png|webp)(?:\?|$)',u,re.I) and not re.search(r'logo|icon|flag|stars|google|facebook|rating|badge|trustpilot',u,re.I):urls.setdefault(u,el.get('alt',''))
+                  for u in re.findall(r'https?[^\s"\'<>]+?\.(?:jpg|jpeg|webp)',r.text,re.I):
+                      if not re.search(r'logo|icon|flag|stars|rating',u,re.I):urls.setdefault(u,'')
+                  def img_task(pair):
+                      n,(u,alt)=pair
+                      try:
+                          d=requests.get(u,headers=headers,timeout=25);d.raise_for_status()
+                          if len(d.content)>18000000:return None
+                          im=Image.open(io.BytesIO(d.content));w,h=im.size
+                          if w<500 or h<250 or w/h>4.5 or h/w>2.2:return None
+                          im=im.convert('RGB');im.thumbnail((1100,750))
+                          name=f'{model}-{idx:02}-{n:03}.jpg';im.save(out/name,quality=85)
+                          return {'id':name[:-4],'file':name,'model':model,'source_page':page,'source_image':u,'source_alt':alt,'original_width':w,'original_height':h,'rights':'Permission not established; private visual review only'}
+                      except Exception:return None
+                  with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+                      records=[x for x in ex.map(img_task,enumerate(list(urls.items())[:80])) if x]
+              except Exception as e:records=[{'page':page,'error':str(e)}]
+              return records
+          records=[]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+              for group in ex.map(page_task,enumerate(pages)):records+=group
+          (out/'image-index.json').write_text(json.dumps(records,indent=2))
+          (out/'README.txt').write_text('Research thumbnails only. No commercial reuse rights established. No photo edits or site uploads authorised by this research. Source galleries may include unrelated models, renders or generated imagery; every candidate requires visual filtering.\n')
+          print('references',len(records))
+          PY
+          python /tmp/photos.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Fleet-Private-Reference-Research
+          path: reference/
+          retention-days: 7
