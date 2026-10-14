@@ -1,0 +1,135 @@
+name: Airport exterior review 03
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths:
+      - .github/workflows/airport-exterior-review-03.yml
+      - review-tools/airport-exteriors-03.py
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Fetch only the review builder
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github.raw+json' "https://api.github.com/repos/${REPOSITORY}/contents/review-tools/airport-exteriors-03.py?ref=${COMMIT}" -o airport-review.py
+          python -m py_compile airport-review.py
+      - name: Install review-only tools
+        run: |
+          python -m pip install --quiet Pillow playwright
+          python -m playwright install --with-deps chromium
+      - name: Download and decode exact source photographs; build offline HTML
+        run: python airport-review.py
+      - name: Test extracted package with network disabled
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, shutil, zipfile
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          root=Path('airport-review-output')
+          qa=Path('airport-review-qa')
+          checks=[]
+          def verify(condition, label):
+              if not condition:
+                  raise AssertionError(label)
+              checks.append(label)
+          archive=Path('airport-exterior-review-03-candidate.zip')
+          with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+              for f in sorted(root.iterdir()):
+                  z.write(f,f.name)
+          empty=Path('empty-extraction')
+          verify(not empty.exists(),'fresh extraction directory did not exist')
+          empty.mkdir()
+          with zipfile.ZipFile(archive) as z:
+              verify(z.testzip() is None,'ZIP integrity')
+              z.extractall(empty)
+          manifest=json.loads((empty/'SOURCE-MANIFEST.json').read_text())
+          pagefile=empty/'Londra_Airport_Exterior_Review_03.html'
+          verify(hashlib.sha256(pagefile.read_bytes()).hexdigest()==manifest['html_sha256'],'extracted HTML hash')
+          verify(len(manifest['source_records'])==13,'13 photographed sources in manifest')
+          verify(sum(v=='Prefer this photograph' for v in manifest['original_decisions'].values())==9,'nine earlier preferences unchanged')
+          verify(sum(v=='Reject' for v in manifest['original_decisions'].values())==3,'three earlier rejections unchanged')
+          verify(not {'STN-02','LTN-02','LCY-02'}&{x['code'] for x in manifest['source_records']},'rejected images not embedded')
+          verify(manifest['composites_produced']==0,'no composite completion claim')
+          verify(sum(map(len,manifest['fleet_appearance_approvals'].values()))==24,'24 fleet appearance approvals retained')
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch()
+              context=browser.new_context(accept_downloads=True)
+              context.set_offline(True)
+              page=context.new_page()
+              errors=[]
+              remote=[]
+              page.on('pageerror',lambda e: errors.append(str(e)))
+              page.on('request',lambda r: remote.append(r.url) if r.url.startswith(('http://','https://')) else None)
+              for width in (1440,390,320):
+                  page.set_viewport_size({'width':width,'height':1000})
+                  page.goto(pagefile.resolve().as_uri(),wait_until='load')
+                  page.wait_for_function("Array.from(document.querySelectorAll('.card img')).every(i=>i.complete&&i.naturalWidth>0)")
+                  images=page.locator('.card img')
+                  verify(images.count()==13,f'{width}: 13 embedded images')
+                  for i in range(images.count()):
+                      verify(images.nth(i).evaluate("i=>i.naturalWidth>0&&i.naturalHeight>0&&i.src.startsWith('data:')"),f'{width}: source image {i+1} decoded offline')
+                  verify(page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'),f'{width}: no page-level horizontal overflow')
+                  page.locator('[data-enlarge="STN-03"]').click()
+                  verify(page.locator('#lightbox').evaluate('d=>d.open'),f'{width}: lightbox opened')
+                  verify(page.locator('#modal-image').evaluate('i=>i.naturalWidth>0'),f'{width}: lightbox image decoded')
+                  page.keyboard.press('Escape')
+                  verify(not page.locator('#lightbox').evaluate('d=>d.open'),f'{width}: lightbox Escape close')
+                  verify(page.locator('[data-enlarge="STN-03"]').evaluate('b=>document.activeElement===b'),f'{width}: focus restored')
+                  page.locator('#history-images summary').click()
+                  verify(page.locator('#history-images').evaluate('d=>d.open'),f'{width}: retained photo register opens')
+                  for anchor in page.locator('.links .button').all():
+                      box=anchor.bounding_box()
+                      if box:
+                          verify(box['height']>=47.9,f'{width}: source button minimum height')
+                  page.locator('#history-images summary').click()
+                  page.screenshot(path=str(qa/f'review-{width}.png'),full_page=True)
+              page.select_option('#choice-STN-03','Prefer for a composite trial')
+              page.locator('#note-STN-03').fill('TEST NOTE — not an actual approval')
+              page.reload(wait_until='load')
+              verify(page.locator('#choice-STN-03').input_value()=='Prefer for a composite trial','new decision persists on reload')
+              verify(page.locator('#note-STN-03').input_value()=='TEST NOTE — not an actual approval','notes persist on reload')
+              exported=page.locator('#review-text').input_value()
+              for code,value in manifest['original_decisions'].items():
+                  verify(f'{code} | {value}' in exported,'export retains '+code)
+              with page.expect_download() as info:
+                  page.locator('#export').click()
+              downloaded=Path(info.value.path()).read_text()
+              verify(downloaded==exported,'downloaded export equals visible review text')
+              page.select_option('#choice-STN-03','Unreviewed')
+              page.locator('#note-STN-03').fill('')
+              verify(not remote,'no HTTP image/font/script/network requests during offline review')
+              verify(not errors,'no JavaScript errors')
+              context.close()
+              browser.close()
+          result={'status':'passed','checks_passed':len(checks),'checks':checks,'html_sha256':manifest['html_sha256'],'test_environment':'GitHub Actions Chromium, file://, network disabled','viewports':[1440,390,320],'limitations':['Screenshots generated; no human visual sign-off inferred.','No completed vehicle composites in this package.','No live website or production database access.','Current airport layouts and fleet image publication/editing rights remain unverified.']}
+          (root/'OFFLINE-TEST-REPORT.json').write_text(json.dumps(result,indent=2))
+          (qa/'OFFLINE-TEST-REPORT.json').write_text(json.dumps(result,indent=2))
+          print('OFFLINE_TESTS_PASSED',len(checks),flush=True)
+          print('HTML_SHA256',manifest['html_sha256'],flush=True)
+          print('HTML_BYTES',pagefile.stat().st_size,flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Airport-Exterior-Review-03-HTML
+          path: airport-review-output/
+          compression-level: 6
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Londra-Airport-Exterior-Review-03-Source-and-QA
+          path: |
+            airport-review-sources/
+            airport-review-qa/
+          compression-level: 1
+          retention-days: 7
