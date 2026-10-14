@@ -1,0 +1,93 @@
+name: Airport review public images only
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths: [.github/workflows/airport-review-public-images-only.yml]
+permissions:
+  contents: read
+jobs:
+  image-downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Install image decoder
+        run: python -m pip install --quiet Pillow
+      - name: Download exact public shortlist files and source metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, io, json, time, urllib.parse, urllib.request
+          from pathlib import Path
+          from PIL import Image, ImageOps
+          root = Path('public-airport-review-sources')
+          root.mkdir()
+          items = [
+              ('LHR-01','Heathrow Airport Terminal 5.jpg'),
+              ('LHR-02','Heathrow T5B.jpg'),
+              ('LGW-01','Gatwick Airport North Terminal entrance.jpg'),
+              ('LGW-02','Gatwick Airport stn South Terminal entrance 2016.jpg'),
+              ('STN-01','London Stansted Airport Terminal.jpg'),
+              ('STN-02','Stansted Airport - geograph.org.uk - 1761505.jpg'),
+              ('LTN-01','London Luton Airport in 2025.03.jpg'),
+              ('LTN-02','London Luton Airport - geograph.org.uk - 5703488.jpg'),
+              ('LCY-01','London City Airport Terminal outside.jpg'),
+              ('LCY-02','London City Airport.jpg'),
+              ('SEN-01','Southend Airport terminal building 01.jpg'),
+              ('SEN-02','London Southend Airport - geograph.org.uk - 7266157.jpg'),
+          ]
+          def fetch(url):
+              last = None
+              for delay in (0,3):
+                  time.sleep(delay)
+                  try:
+                      req = urllib.request.Request(url, headers={'User-Agent':'LondraPhotoReview/1.0 (public photo source verification; https://londratransfers.co.uk)'})
+                      with urllib.request.urlopen(req, timeout=35) as r:
+                          return r.read(), r.geturl(), r.headers.get('Content-Type','')
+                  except Exception as e:
+                      last = e
+              raise last
+          results = []
+          for code, name in items:
+              record = {'code':code,'requested_title':name}
+              canonical = name.replace(' ','_')
+              digest = hashlib.md5(canonical.encode()).hexdigest()
+              source = 'https://commons.wikimedia.org/wiki/File:' + urllib.parse.quote(canonical)
+              raw = 'https://upload.wikimedia.org/wikipedia/commons/' + digest[0] + '/' + digest[:2] + '/' + urllib.parse.quote(canonical)
+              record.update(source_page=source,original_url=raw)
+              try:
+                  data, final_url, mime = fetch(raw)
+                  with Image.open(io.BytesIO(data)) as check:
+                      check.verify()
+                  image = ImageOps.exif_transpose(Image.open(io.BytesIO(data))).convert('RGB')
+                  record.update(original_size=list(image.size), original_bytes=len(data), sha256=hashlib.sha256(data).hexdigest(), final_url=final_url)
+                  (root/(code+'-original.jpg')).write_bytes(data)
+                  image.thumbnail((1600,1600))
+                  image.save(root/(code+'-preview.webp'),'WEBP',quality=90,method=6)
+                  record.update(preview_size=list(image.size),status='downloaded-and-decoded')
+                  print(code,'downloaded',record['original_size'],flush=True)
+              except Exception as e:
+                  record.update(status='download-failed',error=str(e))
+                  print(code,'DOWNLOAD FAILED',str(e),flush=True)
+              try:
+                  api = 'https://commons.wikimedia.org/w/api.php?' + urllib.parse.urlencode({'action':'query','format':'json','prop':'imageinfo','titles':'File:'+name,'iiprop':'url|size|extmetadata|sha1','redirects':'1'})
+                  meta, _, _ = fetch(api)
+                  record['imageinfo'] = json.loads(meta)
+                  (root/(code+'-metadata.json')).write_bytes(meta)
+              except Exception as e:
+                  record['metadata_error'] = str(e)
+              try:
+                  page, _, _ = fetch(source)
+                  (root/(code+'-source.html')).write_bytes(page)
+              except Exception as e:
+                  record['page_error'] = str(e)
+              results.append(record)
+              (root/'download-results.json').write_text(json.dumps(results,indent=2),encoding='utf-8')
+          print('RESULT',sum(x['status']=='downloaded-and-decoded' for x in results),'of',len(results),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Londra-Airport-Review-Public-Image-Sources
+          path: public-airport-review-sources/
+          compression-level: 0
+          retention-days: 2
