@@ -1,0 +1,126 @@
+name: Heathrow review 04 download reissue
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths: [.github/workflows/heathrow-review-04-download-reissue.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reissue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Extract verified existing HTML and prepare lightweight copy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          python -m pip install --quiet requests Pillow playwright
+          python - <<'PY'
+          import base64, hashlib, io, json, os, re, zipfile
+          from pathlib import Path
+          import requests
+          from PIL import Image
+          root=Path('review-only')
+          root.mkdir()
+          response=requests.get('https://api.github.com/repos/'+os.environ['REPOSITORY']+'/actions/artifacts/11919838498/zip',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'},timeout=90)
+          response.raise_for_status()
+          data=response.content
+          digest=hashlib.sha256(data).hexdigest()
+          assert digest=='04a3d521741130e146f57abed7314d132c4b4c07ef3a9c5de1b769db24a964fc'
+          with zipfile.ZipFile(io.BytesIO(data)) as archive:
+              assert archive.testzip() is None
+              original=archive.read('Londra_Heathrow_EClass_Composite_Trial_04.html')
+              assert hashlib.sha256(original).hexdigest()=='03585091e2a602700921acfff93318401f1126abc5a109b3a23aabd284856763'
+              provenance=json.loads(archive.read('PROVENANCE.json'))
+          text=original.decode('utf-8')
+          original_images=re.findall(r'src="(data:image/[^"]+)"',text)
+          assert len(original_images)==6
+          for code in ('LHR-E02-01','LHR-E02-02'):
+              old='<a class="button" href="'+code+'-trial.png" download>Save PNG master</a>'
+              new='<button type="button" data-save-preview="'+code+'">Save review image</button>'
+              assert text.count(old)==1
+              text=text.replace(old,new)
+          old='The PNG masters are included in the package.'
+          assert text.count(old)==1
+          text=text.replace(old,'This lightweight copy includes all review images. Original PNG masters are available in the separate full review ZIP.')
+          old='Keep the accompanying PNG files beside the HTML only to use the optional PNG-master links.'
+          assert text.count(old)==1
+          text=text.replace(old,'No additional files are required. The Save review image buttons save the embedded WebP previews; original PNG masters remain in the separate full review ZIP.')
+          script='''document.querySelectorAll('[data-save-preview]').forEach(button=>button.addEventListener('click',()=>{const code=button.dataset.savePreview;const src=button.closest('.card').querySelector('.view-composite').src;const a=document.createElement('a');a.href=src;a.download=code+'-review.webp';document.body.append(a);a.click();a.remove();}));'''
+          assert text.count('</script>')==1
+          text=text.replace('</script>',script+'</script>')
+          assert re.findall(r'src="(data:image/[^"]+)"',text)==original_images
+          for uri in original_images:
+              raw=base64.b64decode(uri.split(',',1)[1],validate=True)
+              with Image.open(io.BytesIO(raw)) as im:
+                  im.verify()
+          target=root/'Londra_Heathrow_Review_04.html'
+          target.write_text(text,encoding='utf-8')
+          (root/'READ-ME.txt').write_text('Londra Transfers — Heathrow E-Class review 04\n\nExtract this small ZIP, then open Londra_Heathrow_Review_04.html in Chrome or Edge. All review images are embedded. No additional folders or internet connection are required for the review.\n\nThis is the same two photographic trials as the larger package, with unchanged embedded image bytes. Save review image saves the WebP preview. The original PNG masters and source layers remain in the separate full 29.5 MB package.\n\nThis is not the final website ZIP. No images were regenerated; no production website or database was accessed.\n',encoding='utf-8')
+          result={'source_archive_sha256':digest,'original_html_sha256':hashlib.sha256(original).hexdigest(),'reissued_html_sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'reissued_html_bytes':target.stat().st_size,'embedded_image_elements':6,'embedded_image_bytes_unchanged':True,'image_regeneration':False,'website_changed':False,'database_accessed':False,'changes':['Original PNG-master file links replaced with offline preview-save controls','Copy clarified to distinguish lightweight review from full PNG/source package']}
+          (root/'REISSUE-VERIFICATION.json').write_text(json.dumps(result,indent=2))
+          print('REISSUED_HTML_BYTES',target.stat().st_size,flush=True)
+          print('UNCHANGED_IMAGE_ELEMENTS',len(original_images),flush=True)
+          PY
+      - name: Verify offline review and preview-save buttons
+        shell: bash
+        run: |
+          python -m playwright install --with-deps chromium
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          root=Path('review-only')
+          html=root/'Londra_Heathrow_Review_04.html'
+          errors=[]
+          network=[]
+          checks=[]
+          def check(value,label):
+              assert value,label
+              checks.append(label)
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch()
+              context=browser.new_context(accept_downloads=True)
+              context.set_offline(True)
+              page=context.new_page()
+              page.on('pageerror',lambda e:errors.append(str(e)))
+              page.on('request',lambda r:network.append(r.url) if r.url.startswith(('http://','https://')) else None)
+              for width in (1440,390):
+                  page.set_viewport_size({'width':width,'height':1000})
+                  page.goto(html.resolve().as_uri(),wait_until='load')
+                  page.wait_for_function("Array.from(document.querySelectorAll('.card img')).every(i=>i.complete&&i.naturalWidth>0)")
+                  check(page.locator('.card img').count()==6,str(width)+' six image elements decoded offline')
+                  check(page.evaluate('document.documentElement.scrollWidth<=innerWidth'),str(width)+' no horizontal overflow')
+                  for code in ('LHR-E02-01','LHR-E02-02'):
+                      card=page.locator('article[data-code="'+code+'"]')
+                      page.locator('[data-toggle="'+code+'"]').click()
+                      check(card.locator('.view-original').is_visible(),str(width)+' '+code+' original comparison visible')
+                      page.locator('[data-toggle="'+code+'"]').click()
+                      check(card.locator('.view-composite').is_visible(),str(width)+' '+code+' composite comparison visible')
+                      with page.expect_download() as info:
+                          page.locator('[data-save-preview="'+code+'"]').click()
+                      check(info.value.suggested_filename==code+'-review.webp',str(width)+' '+code+' preview file download')
+                      check(Path(info.value.path()).stat().st_size>1000,str(width)+' '+code+' preview contains bytes')
+              with page.expect_download() as info:
+                  page.locator('#export').click()
+              check(Path(info.value.path()).read_text()==page.locator('#review-text').input_value(),'feedback export matches displayed text')
+              check(not errors,'no JavaScript errors')
+              check(not network,'no HTTP requests needed to review')
+              browser.close()
+          file=root/'REISSUE-VERIFICATION.json'
+          report=json.loads(file.read_text())
+          report['offline_checks_passed']=len(checks)
+          report['offline_checks']=checks
+          file.write_text(json.dumps(report,indent=2))
+          print('OFFLINE_REISSUE_CHECKS_PASSED',len(checks),flush=True)
+          print('HTML_SHA256',report['reissued_html_sha256'],flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Heathrow-Review-04-Small-Download
+          path: review-only/
+          compression-level: 9
+          retention-days: 14
