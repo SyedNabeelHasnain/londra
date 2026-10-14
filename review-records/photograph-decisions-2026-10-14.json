@@ -1,0 +1,50 @@
+{
+  "project": "Londra Transfers",
+  "record_date": "2026-10-14",
+  "source": "User's exported airport exterior review edition 03 and subsequent instruction to continue with existing source photographs",
+  "original_airport_decisions": {
+    "LHR-01": "Prefer this photograph",
+    "LHR-02": "Prefer this photograph",
+    "LGW-01": "Prefer this photograph",
+    "LGW-02": "Prefer this photograph",
+    "STN-01": "Prefer this photograph",
+    "STN-02": "Reject",
+    "LTN-01": "Prefer this photograph",
+    "LTN-02": "Reject",
+    "LCY-01": "Prefer this photograph",
+    "LCY-02": "Reject",
+    "SEN-01": "Prefer this photograph",
+    "SEN-02": "Prefer this photograph"
+  },
+  "supplementary_exterior_decisions": {
+    "LHR-03": "Prefer for a composite trial",
+    "LGW-03": "Reject",
+    "STN-03": "Prefer for a composite trial",
+    "LTN-03": "Prefer for a composite trial"
+  },
+  "fleet_appearance_record": {
+    "E-Class": ["E01", "E02", "E03", "E04", "E05"],
+    "S-Class": ["S01", "S02", "S03", "S04", "S05", "S06", "S07"],
+    "V-Class": ["V01", "V02", "V03", "V04", "V05", "V06", "V07"],
+    "Vito": ["T01", "T02", "T03", "T04", "T05"]
+  },
+  "excluded_fleet": ["E06", "E07"],
+  "first_trial": {
+    "airport": "LHR-03",
+    "vehicle": "E02",
+    "airport_file": "Heathrow Airport , Terminal 5 - Drop Off Point - geograph.org.uk - 4226587.jpg",
+    "vehicle_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f37b34eaa8707f8468087_Home-James-E-CLASS_7.jpg",
+    "user_reupload_required": false,
+    "completed_composite_appearance_approved": false,
+    "publication_approved": false
+  },
+  "constraints": [
+    "No silent source substitutions",
+    "No alteration of production website or database before approved integration",
+    "Appearance approval does not establish ownership or commercial reuse rights",
+    "Do not place vehicles in terminal interiors or pedestrian areas",
+    "Do not use rejected Gatwick LGW-03",
+    "Keep all existing tour images and both tour galleries for eventual integration",
+    "Final production package must be self-contained, not an old repository application build"
+  ]
+}
