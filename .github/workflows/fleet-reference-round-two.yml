@@ -1,0 +1,35 @@
+name: Londra fleet reference round two
+on:
+  push:
+    branches: [work/ui-visual-review-2026-10-14]
+    paths: [.github/workflows/fleet-reference-round-two.yml]
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m pip install requests beautifulsoup4 Pillow PyYAML
+      - run: |
+          python - <<'PY'
+          import pathlib,yaml,re,subprocess
+          w=yaml.safe_load(pathlib.Path('.github/workflows/visual-review-confirmed-2026-10-14.yml').read_text())
+          script=w['jobs']['photo_research']['steps'][1]['run']
+          start=script.index("          ") if False else 0
+          program=script.split("cat > /tmp/photos.py <<'PY'\n",1)[1].rsplit('\nPY',1)[0]
+          pages=[('T','https://www.newdirection.se/en/flotta/mercedes-vito-tourer-8-sits'),('T','https://mountain-tours.ch/car/mercedes-vito/'),('T','https://www.ncccampania.it/fleet/mercedes-vito-tourer/?lang=en'),('T','https://www.wedriveglobal.com/mercedes-vito'),('T','https://limoblackctt.ro/vito.php?lang=en'),('E','https://www.luxurychauffeurs.co.uk/fleet/mercedes-e-class/'),('E','https://www.crystalexecutivecars.com/gallery/'),('E','https://luxury-chauffeurs.uk/vehicles/mercedes-benz-e-class/'),('T','https://www.bristolchauffeurcars.co.uk/fleet/mercedes-vito')]
+          program=re.sub(r'^pages=.*$', 'pages='+repr(pages),program,flags=re.M)
+          pathlib.Path('reference').mkdir(exist_ok=True)
+          pathlib.Path('/tmp/photos.py').write_text(program)
+          subprocess.run(['python','/tmp/photos.py'],check=True)
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Fleet-Reference-Round-Two
+          path: reference/
+          retention-days: 7
