@@ -1,0 +1,37 @@
+name: Startup test runtime only
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths: [.github/workflows/startup-test-runtime-only.yml]
+permissions:
+  contents: read
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    timeout-minutes: 15
+    steps:
+      - name: Download PHP and MySQL test runtimes only
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          rm -f /etc/apt/apt.conf.d/docker-clean
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl xz-utils
+          curl -fsSL --retry 3 https://packages.sury.org/debsuryorg-archive-keyring.deb -o /tmp/sury-keyring.deb
+          dpkg -i /tmp/sury-keyring.deb
+          printf '%s\n' 'deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ trixie main' > /etc/apt/sources.list.d/php.list
+          apt-get update
+          apt-get install -y --download-only --no-install-recommends php8.5-cli php8.5-curl php8.5-xml php8.5-gd php8.5-intl php8.5-mbstring php8.5-mysql php8.5-zip php8.5-bcmath libaio1t64 libnuma1 libncurses6 libtinfo6 libcrypt1 libtirpc3t64
+          mkdir -p runtime-tools
+          tar -cJf runtime-tools/php85-debian-trixie-packages.tar.xz -C /var/cache/apt/archives --wildcards '*.deb'
+          curl -fsSL --retry 3 https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-linux-glibc2.28-x86_64-minimal.tar.xz -o runtime-tools/mysql-8.4.11-linux-glibc2.28-x86_64-minimal.tar.xz
+          (cd runtime-tools && sha256sum *.tar.xz > SHA256SUMS)
+          printf '%s\n' 'Test runtimes only. No repository checkout, application files, production configuration or database access.' > runtime-tools/README.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Isolated-PHP85-MySQL84-Test-Runtimes
+          path: runtime-tools/
+          compression-level: 0
+          retention-days: 2
