@@ -18,7 +18,7 @@ jobs:
       OPENBLAS_NUM_THREADS: '2'
       TOKENIZERS_PARALLELISM: 'false'
     steps:
-      - name: Retrieve only isolated review scripts
+      - name: Retrieve isolated scripts and apply comparison rendering correction
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -28,21 +28,36 @@ jobs:
           set -euo pipefail
           for name in heathrow-eclass-composite-trial-04.py heathrow-trial-04-tests.py; do
             curl -fsSL --retry 2 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github.raw+json' "https://api.github.com/repos/${REPOSITORY}/contents/review-tools/${name}?ref=${COMMIT}" -o "${name}"
-            python -m py_compile "${name}"
           done
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('heathrow-eclass-composite-trial-04.py')
+          s=p.read_text()
+          old='.view-original{display:none}'
+          assert s.count(old)==1
+          p.write_text(s.replace(old,'.photo .view-original{display:none}'))
+          p=Path('heathrow-trial-04-tests.py')
+          s=p.read_text()
+          old="            button.click()\n            check(button.get_attribute('aria-pressed')=='true',f'{width}: {code} original comparison toggle')"
+          new="            card=button.locator('xpath=ancestor::article')\n            check(not card.locator('.view-original').is_visible(),f'{width}: {code} original initially hidden')\n            check(card.locator('.view-composite').is_visible(),f'{width}: {code} composite initially visible')\n            button.click()\n            check(card.locator('.view-original').is_visible(),f'{width}: {code} original actually visible')\n            check(not card.locator('.view-composite').is_visible(),f'{width}: {code} composite actually hidden')\n            check(button.get_attribute('aria-pressed')=='true',f'{width}: {code} original comparison toggle')"
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new))
+          PY
+          python -m py_compile heathrow-eclass-composite-trial-04.py heathrow-trial-04-tests.py
       - name: Install isolated photographic processing tools
         shell: bash
         run: |
           python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
           python -m pip install --quiet 'rembg[cpu]' 'transformers>=4.50,<5' Pillow safetensors playwright opencv-python-headless numpy
           python -c 'import cv2, numpy, torch, rembg; from transformers import AutoImageProcessor, AutoModelForSemanticSegmentation; print("PROCESSING_IMPORTS_OK")'
-          python -m playwright install --with-deps chromium
           python -m pip freeze > TOOL-VERSIONS.txt
       - name: Produce source-preserving photographic trials
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
         run: python heathrow-eclass-composite-trial-04.py
+      - name: Install offline browser tester
+        run: python -m playwright install --with-deps chromium
       - name: Test extracted offline review and image masters
         run: python heathrow-trial-04-tests.py
       - uses: actions/upload-artifact@v4
