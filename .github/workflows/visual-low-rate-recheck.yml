@@ -1,0 +1,42 @@
+name: Londra low-rate public recheck
+on:
+  push:
+    branches: [work/ui-visual-review-2026-10-14]
+    paths: [.github/workflows/visual-low-rate-recheck.yml]
+permissions:
+  contents: read
+jobs:
+  recheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - run: |
+          mkdir -p recheck
+          python - <<'PY'
+          import urllib.request,urllib.error,json,time,pathlib
+          paths=['/en','/en/services/private-aviation-transfers','/es','/it','/robots.txt','/sitemap.xml','/en/tours/london']
+          results=[];failures=0
+          for path in paths:
+              request=urllib.request.Request('https://londratransfers.co.uk'+path,headers={'User-Agent':'Mozilla/5.0 Londra-read-only-visual-check','Cache-Control':'no-cache','Accept':'text/html,application/xml,text/plain;q=0.9,*/*;q=0.8'})
+              started=time.time()
+              try:
+                  with urllib.request.urlopen(request,timeout=30) as r:
+                      status=r.status;headers=dict(r.headers);body=r.read(200000).decode('utf-8','replace')
+              except urllib.error.HTTPError as e:
+                  status=e.code;headers=dict(e.headers);body=e.read(200000).decode('utf-8','replace')
+              except Exception as e:
+                  status=0;headers={};body=str(e)
+              public={k:v for k,v in headers.items() if k.lower() in ('content-type','server','retry-after','cache-control','x-robots-tag','x-litespeed-cache','date')}
+              results.append({'path':path,'status':status,'seconds':round(time.time()-started,2),'headers':public,'body_length':len(body),'error_page':'Something interrupted' in body or 'problema durante' in body})
+              if status>=500 or status==0:failures+=1
+              if failures>=2:break
+              time.sleep(5)
+          pathlib.Path('recheck/results.json').write_text(json.dumps({'method':'One unauthenticated GET per URL, five seconds apart; no cookies, assets, login or submissions; stop after two server failures','results':results},indent=2))
+          print(pathlib.Path('recheck/results.json').read_text())
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Low-Rate-HTTP-Recheck
+          path: recheck/
+          retention-days: 7
