@@ -1,0 +1,17 @@
+Londra Transfers: read-only public HTTP check
+Observed at 2026-10-14 00:51:23 UTC by GitHub Actions run 38492500229, job 115620758382.
+Check source: https://github.com/SyedNabeelHasnain/londra/actions/runs/38492500229/job/115620758382
+
+https://londratransfers.co.uk/                 HTTP 500; response body 0 bytes
+https://londratransfers.co.uk/en               HTTP 500; response body 0 bytes
+https://londratransfers.co.uk/admin/login      HTTP 500; response body 0 bytes
+https://londratransfers.co.uk/index.php        HTTP 500; response body 0 bytes
+https://londratransfers.co.uk/assets/theme.js  HTTP 200; response body 1221 bytes
+https://londratransfers.co.uk/assets/recovery.css HTTP 200; response body 4562 bytes
+
+The PHP responses report X-Powered-By: PHP/8.5.11 and Server: LiteSpeed.
+HTTPS requests used certificate verification and no authentication. No forms were submitted.
+No environment file, credentials, private logs, database records, or private hosting files were requested or accessed.
+The workflow completed successfully as a diagnostic. This does not mean the website is healthy or repaired.
+Conclusion: the observed application URLs fail server-side with empty HTTP 500 responses while the two tested static resources are served successfully. The exact exception or fatal error is not exposed in the public responses and requires server-side error logs.
+No production code, settings, or data were changed. This diagnostic report is on the separate work branch, not main.
