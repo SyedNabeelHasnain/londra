@@ -1,0 +1,147 @@
+name: Heathrow E-Class photographic composite trial 04
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths:
+      - .github/workflows/heathrow-eclass-composite-trial-04.yml
+      - review-tools/heathrow-eclass-composite-trial-04.py
+permissions:
+  contents: read
+  actions: read
+jobs:
+  composite-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - name: Retrieve only the isolated review script
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 2 -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github.raw+json' "https://api.github.com/repos/${REPOSITORY}/contents/review-tools/heathrow-eclass-composite-trial-04.py?ref=${COMMIT}" -o build-trial.py
+          python -m py_compile build-trial.py
+      - name: Install isolated photographic processing tools
+        shell: bash
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'rembg[cpu]' 'transformers>=4.50,<5' Pillow safetensors playwright
+          python -m playwright install --with-deps chromium
+          python -m pip freeze > TOOL-VERSIONS.txt
+      - name: Produce the two source-preserving photographic trials
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: python build-trial.py
+      - name: Test the extracted offline review and image masters
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, shutil, zipfile
+          from pathlib import Path
+          from PIL import Image
+          from playwright.sync_api import sync_playwright
+          root=Path('heathrow-composite-trial-04')
+          qa=Path('heathrow-trial-04-qa')
+          checks=[]
+          def check(ok,label):
+              if not ok: raise AssertionError(label)
+              checks.append(label)
+          shutil.copyfile('TOOL-VERSIONS.txt',root/'TOOL-VERSIONS.txt')
+          provenance=json.loads((root/'PROVENANCE.json').read_text())
+          check(len(provenance['trials'])==2,'two actual composite trials exist')
+          check(provenance['trials'][0]['master_sha256']!=provenance['trials'][1]['master_sha256'],'trial images are distinct')
+          for item in provenance['trials']:
+              raw=(root/item['master_filename']).read_bytes()
+              check(hashlib.sha256(raw).hexdigest()==item['master_sha256'],item['code']+' master hash')
+              with Image.open(root/item['master_filename']) as im:
+                  im.verify()
+              check(item['vehicle_scale']<=1,item['code']+' vehicle not upscaled')
+              check(item['changed_pixels_outside_edit_region']==0,item['code']+' original background preserved outside layer footprint')
+              check(item['estimated_ground_road_fraction']>=.84,item['code']+' estimated tyre ground on road')
+          check(provenance['source_substitutions']==0,'no source substitutions')
+          archive=Path('heathrow-trial-04-candidate.zip')
+          with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=4) as z:
+              for f in sorted(root.rglob('*')):
+                  if f.is_file(): z.write(f,f.relative_to(root))
+          extracted=Path('heathrow-trial-04-empty-extraction')
+          check(not extracted.exists(),'extraction directory initially absent')
+          extracted.mkdir()
+          with zipfile.ZipFile(archive) as z:
+              check(z.testzip() is None,'ZIP integrity')
+              z.extractall(extracted)
+          html=extracted/'Londra_Heathrow_EClass_Composite_Trial_04.html'
+          check(html.read_bytes()==(root/html.name).read_bytes(),'extracted HTML byte match')
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch()
+              context=browser.new_context(accept_downloads=True)
+              context.set_offline(True)
+              page=context.new_page()
+              errors=[]
+              net=[]
+              page.on('pageerror',lambda e:errors.append(str(e)))
+              page.on('request',lambda r:net.append(r.url) if r.url.startswith(('https://','http://')) else None)
+              for width in (1440,390,320):
+                  page.set_viewport_size({'width':width,'height':1000})
+                  page.goto(html.resolve().as_uri(),wait_until='load')
+                  page.wait_for_function("Array.from(document.querySelectorAll('.card img')).every(i=>i.complete&&i.naturalWidth>0)")
+                  check(page.locator('.card img').count()==6,f'{width}: all six embedded image elements decoded')
+                  check(page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'),f'{width}: no horizontal page overflow')
+                  for code in ('LHR-E02-01','LHR-E02-02'):
+                      button=page.locator('[data-toggle="'+code+'"]')
+                      button.click()
+                      check(button.get_attribute('aria-pressed')=='true',f'{width}: {code} original comparison toggle')
+                      button.click()
+                      page.locator('[data-enlarge="'+code+'"]').click()
+                      check(page.locator('#lightbox').evaluate('d=>d.open'),f'{width}: {code} lightbox opened')
+                      page.wait_for_function("document.getElementById('modal-image').naturalWidth>0")
+                      page.keyboard.press('Escape')
+                      check(not page.locator('#lightbox').evaluate('d=>d.open'),f'{width}: {code} keyboard close')
+                      check(page.locator('[data-enlarge="'+code+'"]').evaluate('b=>document.activeElement===b'),f'{width}: {code} focus restored')
+                  for b in page.locator('.toolbar button,.toolbar .button').all():
+                      box=b.bounding_box()
+                      check(box is not None and box['height']>=47.9,f'{width}: action height at least 48 pixels')
+                  page.screenshot(path=str(qa/f'offline-review-{width}.png'),full_page=True)
+              page.select_option('#choice-LHR-E02-01','Needs changes')
+              page.locator('#notes-LHR-E02-01').fill('AUTOMATED TEST ONLY')
+              page.reload(wait_until='load')
+              check(page.locator('#choice-LHR-E02-01').input_value()=='Needs changes','selection persisted on reload')
+              check(page.locator('#notes-LHR-E02-01').input_value()=='AUTOMATED TEST ONLY','notes persisted on reload')
+              with page.expect_download() as download:
+                  page.locator('#export').click()
+              text=Path(download.value.path()).read_text()
+              check(text==page.locator('#review-text').input_value(),'export matches review text')
+              check('Gatwick LGW-03 | Reject' in text,'Gatwick rejection preserved')
+              check('Fleet E06, E07 | Excluded' in text,'fleet exclusions preserved')
+              page.select_option('#choice-LHR-E02-01','Unreviewed')
+              page.locator('#notes-LHR-E02-01').fill('')
+              check(not errors,'no JavaScript errors')
+              check(not net,'no network requests during offline review')
+              context.close()
+              browser.close()
+          result={'status':'passed','checks_passed':len(checks),'checks':checks,'html_sha256':hashlib.sha256(html.read_bytes()).hexdigest(),'html_bytes':html.stat().st_size,'trials_produced':2,'visual_sign_off':False,'photorealism_certified':False,'environment':'GitHub Actions, Chromium, file://, networking disabled','widths':[1440,390,320],'limits':['Automatic source masks and road-position estimates are not visual approval.','Lighting and reflections still require review.','No live site or production database was accessed.','Commercial editing/publication permission for vehicle source remains unverified.']}
+          (root/'OFFLINE-TEST-REPORT.json').write_text(json.dumps(result,indent=2))
+          (qa/'OFFLINE-TEST-REPORT.json').write_text(json.dumps(result,indent=2))
+          print('TRIAL_BUILD_AND_TESTS_PASSED',len(checks),flush=True)
+          print('HTML',html.stat().st_size,result['html_sha256'],flush=True)
+          print('TRIALS',json.dumps(provenance['trials']),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Heathrow-EClass-Composite-Trial-04
+          path: heathrow-composite-trial-04/
+          compression-level: 4
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Londra-Heathrow-EClass-Composite-Trial-04-QA
+          path: heathrow-trial-04-qa/
+          compression-level: 1
+          retention-days: 7
