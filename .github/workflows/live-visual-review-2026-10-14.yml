@@ -1,0 +1,119 @@
+name: Read-only Londra live visual review
+on:
+  push:
+    branches: [work/ui-visual-review-2026-10-14]
+    paths: [.github/workflows/live-visual-review-2026-10-14.yml]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - name: Install isolated browser tooling
+        run: |
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+      - name: Inspect public website without submitting data
+        run: |
+          mkdir -p review
+          cat > /tmp/review.py <<'PY'
+          import asyncio, json, pathlib, re, time
+          from urllib.parse import urlparse
+          from bs4 import BeautifulSoup
+          from playwright.async_api import async_playwright
+          out=pathlib.Path('review')
+          origin='https://londratransfers.co.uk'
+          async def main():
+              async with async_playwright() as p:
+                  browser=await p.chromium.launch()
+                  context=await browser.new_context(ignore_https_errors=False, viewport={'width':1760,'height':1000})
+                  blocked=[]
+                  async def guard(route):
+                      req=route.request
+                      host=urlparse(req.url).hostname
+                      path=urlparse(req.url).path
+                      if req.method not in ('GET','HEAD') or host not in ('londratransfers.co.uk','www.londratransfers.co.uk') or re.search(r'recover|install|logout|reset|update',path,re.I):
+                          blocked.append({'method':req.method,'url':req.url.split('?')[0]})
+                          await route.abort()
+                      else:
+                          await route.continue_()
+                  await context.route('**/*',guard)
+                  page=await context.new_page()
+                  errors=[]; bad=[]; records=[]; links=set()
+                  page.on('pageerror',lambda e:errors.append(str(e)))
+                  page.on('response',lambda r:bad.append({'status':r.status,'url':r.url}) if r.status>=400 else None)
+                  targets=['/en','/en/about','/en/fleet','/en/tours','/en/tours/london','/en/tours/uk','/en/contact','/it','/es']
+                  response=await page.goto(origin+'/en',wait_until='networkidle',timeout=60000)
+                  all_links=await page.locator('a[href]').evaluate_all('(es)=>[...new Set(es.map(e=>e.href))]')
+                  tour_links=[x for x in all_links if '/en/' in x and 'tour' in x and x!=origin+'/en/tours' and '/services/' not in x]
+                  actual=[]
+                  for x in tour_links:
+                      if x not in actual: actual.append(x)
+                  targets=[x for x in targets if x not in ['/en/tours/london','/en/tours/uk']]+[urlparse(x).path for x in actual[:2]]
+                  targets=list(dict.fromkeys(targets))
+                  for path in targets:
+                      for width,height in [(1760,1000),(1024,900),(390,844)]:
+                          await page.set_viewport_size({'width':width,'height':height})
+                          try:
+                              r=await page.goto(origin+path,wait_until='networkidle',timeout=60000)
+                              await page.evaluate('async()=>{for(let y=0;y<document.body.scrollHeight;y+=800){scrollTo(0,y);await new Promise(r=>setTimeout(r,45));}scrollTo(0,0)}')
+                              await page.wait_for_timeout(300)
+                              slug=(path.strip('/') or 'root').replace('/','-')
+                              await page.screenshot(path=str(out/f'{slug}-{width}.png'),full_page=True)
+                              record=await page.evaluate('''()=>({title:document.title,h1:[...document.querySelectorAll('h1')].map(e=>e.textContent.trim()),overflow:document.documentElement.scrollWidth>innerWidth,brokenImages:[...document.images].filter(i=>i.getBoundingClientRect().width&&(!i.complete||!i.naturalWidth)).map(i=>i.currentSrc||i.src),forms:[...document.forms].map(f=>({action:f.action,disabled:!!f.querySelector('fieldset:disabled'),notice:f.querySelector('.form-availability')?.textContent})),notes:[...document.querySelectorAll('main p,figcaption,.photo-credit')].filter(e=>/resized|lossless|webp|placeholder|\bQA\b|template|developer/i.test(e.textContent)).map(e=>e.textContent.trim()),brand:[...document.querySelectorAll('.header-brand img,.header-brand .brand-type')].map(e=>({tag:e.tagName,cls:e.className,w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height})),robots:document.querySelector('meta[name=robots]')?.content,lang:document.documentElement.lang})''')
+                              record.update({'path':path,'width':width,'status':r.status})
+                              if width==1760:
+                                  html=await page.content()
+                                  soup=BeautifulSoup(html,'html.parser')
+                                  for el in soup.select('input[type=hidden],input[name=website]'):el['value']=''
+                                  (out/f'{slug}.html').write_text(str(soup))
+                                  links.update(await page.locator('a[href]').evaluate_all('(es)=>es.map(e=>e.href)'))
+                                  top=page.locator('.back-top')
+                                  if await top.count():
+                                      await top.scroll_into_view_if_needed()
+                                      before=await page.evaluate('scrollY')
+                                      await top.click()
+                                      await page.wait_for_timeout(1500)
+                                      record['backTop']={'before':before,'after':await page.evaluate('scrollY')}
+                                  toggle=page.locator('[data-theme-toggle]')
+                                  if await toggle.count() and path in ['/en/about','/en/fleet']:
+                                      await toggle.click(); await page.screenshot(path=str(out/f'{slug}-{width}-light.png'),full_page=True); await toggle.click()
+                              if width==390 and path=='/en/about':
+                                  trigger=page.locator('[data-open-navigation]:visible').first
+                                  await trigger.click(); await page.wait_for_timeout(400)
+                                  record['navigationOpen']=await page.locator('#navigation-dialog').evaluate('(e)=>e.open')
+                                  await page.screenshot(path=str(out/'live-navigation-mobile.png'))
+                                  await page.keyboard.press('Escape')
+                                  trigger=page.locator('[data-open-enquiry]:visible').first
+                                  await trigger.click(); await page.wait_for_timeout(400)
+                                  await page.screenshot(path=str(out/'live-enquiry-mobile.png'))
+                                  await page.keyboard.press('Escape')
+                              records.append(record)
+                          except Exception as e:
+                              records.append({'path':path,'width':width,'error':str(e)})
+                          (out/'visual-results.json').write_text(json.dumps({'records':records,'errors':errors,'failedResponses':bad,'blockedMutations':blocked},indent=2))
+                  valid=sorted({x.split('#')[0].split('?')[0] for x in links if x.startswith(origin+'/') and not re.search(r'recover|install|logout|reset|update',urlparse(x).path,re.I)})
+                  crawl=[]
+                  for url in valid[:130]:
+                      try:
+                          r=await context.request.get(url,timeout=30000)
+                          soup=BeautifulSoup(await r.text(),'html.parser')
+                          title=soup.title.get_text() if soup.title else ''
+                          crawl.append({'url':url,'status':r.status,'title':title,'h1':len(soup.select('h1'))})
+                      except Exception as e:crawl.append({'url':url,'error':str(e)})
+                      await asyncio.sleep(.3)
+                  (out/'public-route-results.json').write_text(json.dumps(crawl,indent=2))
+                  (out/'scope.txt').write_text('Production public GET/HEAD only. No administrative login, enquiry submission, database access, recovery execution or deployment. Chromium 1.57.0 tool package. Screenshots are observations, not a WCAG certification.\n')
+                  print(json.dumps({'screenshots':len(list(out.glob('*.png'))),'visualChecks':len(records),'routes':len(crawl),'errors':errors,'badResponses':bad,'blocked':blocked},indent=2))
+                  await browser.close()
+          asyncio.run(main())
+          PY
+          python /tmp/review.py
+      - name: Preserve visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Live-Visual-Review-2026-10-14
+          path: review/
+          retention-days: 7
