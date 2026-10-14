@@ -1,0 +1,81 @@
+name: Heathrow E-Class trial source recovery 04
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths: [.github/workflows/heathrow-eclass-trial-source-recovery-04.yml]
+permissions:
+  contents: write
+jobs:
+  references:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install image decoder
+        run: python -m pip install --quiet Pillow
+      - name: Recover exact approved source files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          REVIEW_BRANCH: londra-startup-test-runtime-20261014
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64, hashlib, io, json, os, time, urllib.parse, urllib.request
+          from pathlib import Path
+          from PIL import Image, ImageOps
+          root=Path('trial-04-sources')
+          root.mkdir()
+          def get(url):
+              last=None
+              for delay in (0,2,5):
+                  time.sleep(delay)
+                  try:
+                      req=urllib.request.Request(url,headers={'User-Agent':'LondraPrivatePhotoReview/4.0 (+https://londratransfers.co.uk)'})
+                      with urllib.request.urlopen(req,timeout=40) as response:
+                          return response.read()
+                  except Exception as exc:
+                      last=exc
+              raise RuntimeError(str(last))
+          title='Heathrow Airport , Terminal 5 - Drop Off Point - geograph.org.uk - 4226587.jpg'
+          api='https://commons.wikimedia.org/w/api.php?'+urllib.parse.urlencode({'action':'query','format':'json','prop':'imageinfo','titles':'File:'+title,'iiprop':'url|size|extmetadata|sha1','redirects':'1'})
+          metadata=json.loads(get(api))
+          info=next(p['imageinfo'][0] for p in metadata['query']['pages'].values() if p.get('imageinfo'))
+          (root/'LHR-03-source-metadata.json').write_text(json.dumps(metadata,indent=2))
+          sources=[('LHR-03',info['url'],'https://www.geograph.org.uk/photo/4226587'),('E02','https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f37b34eaa8707f8468087_Home-James-E-CLASS_7.jpg','https://www.homejames.info/fleet/mercedes-e-class')]
+          report=[]
+          for code,url,page in sources:
+              raw=get(url)
+              with Image.open(io.BytesIO(raw)) as im:
+                  im.verify()
+              im=ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert('RGB')
+              original_size=list(im.size)
+              (root/(code+'-original.jpg')).write_bytes(raw)
+              im.thumbnail((2000,2000),Image.Resampling.LANCZOS)
+              stream=io.BytesIO()
+              im.save(stream,'JPEG',quality=96,subsampling=0)
+              preview=stream.getvalue()
+              (root/(code+'-reference.jpg')).write_bytes(preview)
+              repo_path='review-assets/heathrow-trial-04/'+code+'-reference.jpg'
+              endpoint='https://api.github.com/repos/'+os.environ['REPOSITORY']+'/contents/'+repo_path
+              body={'message':'Recover '+code+' exact source for private image trial [skip ci]','content':base64.b64encode(preview).decode(),'branch':os.environ['REVIEW_BRANCH']}
+              headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json','User-Agent':'LondraPrivateReview'}
+              try:
+                  req=urllib.request.Request(endpoint+'?ref='+os.environ['REVIEW_BRANCH'],headers=headers)
+                  with urllib.request.urlopen(req) as response:
+                      current=json.load(response)
+                      body['sha']=current['sha']
+              except urllib.error.HTTPError as exc:
+                  if exc.code!=404: raise
+              req=urllib.request.Request(endpoint,data=json.dumps(body).encode(),headers=headers,method='PUT')
+              with urllib.request.urlopen(req,timeout=40) as response:
+                  saved=json.load(response)
+              report.append({'code':code,'source_url':url,'source_page':page,'original_dimensions':original_size,'reference_dimensions':list(im.size),'original_sha256':hashlib.sha256(raw).hexdigest(),'reference_sha256':hashlib.sha256(preview).hexdigest(),'repository_path':repo_path,'blob_sha':saved['content']['sha'],'original_bytes':len(raw),'reference_bytes':len(preview)})
+              print('RECOVERED',code,original_size,'REFERENCE',list(im.size),'BYTES',len(preview),'SHA256',report[-1]['reference_sha256'],flush=True)
+          (root/'SOURCE-RECOVERY.json').write_text(json.dumps({'sources':report,'source_substitutions':0,'production_files_changed':False,'database_accessed':False},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Heathrow-EClass-04-Exact-Source-References
+          path: trial-04-sources/
+          compression-level: 0
+          retention-days: 14
