@@ -33,9 +33,15 @@ with sync_playwright() as playwright:
         check(len(cssfiles)==1,f"{width}: exactly one compiled public CSS bundle exists")
         for path,reference in expected:
             response=page.goto(base+path,wait_until="domcontentloaded",timeout=30000)
-            # The isolated smoke host runs independently of the configured public
-            # domain; apply the exact freshly compiled CSS from disk for visual QA.
-            page.add_style_tag(content=cssfiles[0].read_text(encoding="utf-8"))
+            # Keep the real content security policy. Re-point the precompiled
+            # stylesheet link to the same-origin local test server, not live production.
+            for link in page.locator("link[rel=stylesheet]").all():
+                href=link.get_attribute("href") or ""
+                if "/build/" in href:
+                    from urllib.parse import urlparse
+                    stylesheet_path=urlparse(href).path
+                    link.evaluate("(el, path)=>el.href=path",stylesheet_path)
+            page.wait_for_function("()=>[...document.styleSheets].some(s=>s.href&&s.href.includes('/build/assets/app-'))")
             check(response is not None and response.status==200,f"{width}: {path} rendered HTTP 200")
             photo=page.locator(".airport-original-photo")
             check(photo.count()==1,f"{width}: {path} exactly one approved original")
@@ -58,7 +64,12 @@ with sync_playwright() as playwright:
                 page.screenshot(path=str(out/f"{reference}-{width}.png"),full_page=True)
         for path,expectedCount in [("/en/tours/london",11),("/en/tours/beyond-london",9)]:
             response=page.goto(base+path,wait_until="domcontentloaded",timeout=30000)
-            page.add_style_tag(content=cssfiles[0].read_text(encoding="utf-8"))
+            for link in page.locator("link[rel=stylesheet]").all():
+                href=link.get_attribute("href") or ""
+                if "/build/" in href:
+                    from urllib.parse import urlparse
+                    link.evaluate("(el, path)=>el.href=path",urlparse(href).path)
+            page.wait_for_function("()=>[...document.styleSheets].some(s=>s.href&&s.href.includes('/build/assets/app-'))")
             check(response is not None and response.status==200,f"{width}: {path} rendered")
             cards=page.locator(".approved-tour-card")
             check(cards.count()==expectedCount,f"{width}: {path} exactly {expectedCount} approved photos")
