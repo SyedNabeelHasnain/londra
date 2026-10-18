@@ -1,0 +1,73 @@
+name: Export finalized Londra photographs as WebP
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths:
+      - .github/workflows/export-finalized-webp-images.yml
+      - review-tools/export-finalized-webp-images.py
+      - review-records/photo-approval-register-03-original.json
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    name: Export photographs, labels and licences only
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install WebP encoder
+        run: python -m pip install --quiet Pillow requests
+      - name: Convert exact approval sources and construct content TXT
+        run: python review-tools/export-finalized-webp-images.py
+      - name: Verify WebP and zip contents with a fresh extraction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,zipfile
+          from PIL import Image
+          root=Path('Londra_Finalized_Images_WebP')
+          manifest=json.loads((root/'image-manifest.json').read_text())
+          assert not manifest['failures'], manifest['failures']
+          assert len(manifest['images'])==32
+          assert sum(r['kind']=='tour' for r in manifest['images'])==20
+          assert sum(r['kind']=='airport' for r in manifest['images'])==12
+          for r in manifest['images']:
+              p=root/r['output']['file']
+              assert p.exists(),p
+              with Image.open(p) as im:
+                  assert im.format=='WEBP',p
+                  assert im.width>0 and im.height>0
+                  im.verify()
+              assert hashlib.sha256(p.read_bytes()).hexdigest()==r['output']['sha256'],p
+          names=[str(x) for x in root.rglob('*') if x.is_file()]
+          assert not any('E06' in n or 'E07' in n or 'L02.webp' in n or 'LGW-03.webp' in n for n in names)
+          assert (root/'Londra_Finalized_Images_Content.txt').stat().st_size>6000
+          archive=Path('Londra_Finalized_Images_WebP_and_Content.zip')
+          with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=5) as z:
+              for f in sorted(root.rglob('*')):
+                  if f.is_file():z.write(f,str(f.relative_to(root)))
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+              assert sum(n.endswith('.webp') for n in z.namelist())==36
+              assert 'Londra_Finalized_Images_Content.txt' in z.namelist()
+              assert z.read('Londra_Finalized_Images_Content.txt')==(root/'Londra_Finalized_Images_Content.txt').read_bytes()
+          print('EXPORT_CHECKS_PASSED',len(manifest['images']),'photographs + 4 existing fleet art; ZIP_BYTES',archive.stat().st_size)
+          PY
+      - name: Upload finalized WebP images and TXT
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Finalized-WebP-Images-and-Content
+          path: Londra_Finalized_Images_WebP_and_Content.zip
+          retention-days: 30
+          compression-level: 0
+      - name: Upload separate TXT
+        uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Finalized-Images-Content-TXT
+          path: Londra_Finalized_Images_WebP/Londra_Finalized_Images_Content.txt
+          retention-days: 30
+          compression-level: 6
