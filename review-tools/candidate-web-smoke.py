@@ -44,6 +44,9 @@ with sync_playwright() as playwright:
             check(photo.evaluate("(img)=>img.naturalWidth>0"),f"{width}: {path} airport image loaded")
             links=page.locator(".airport-fleet-thumbnail")
             check(links.count()==4,f"{width}: {path} four fleet thumbnails")
+            for vehicle_img in links.locator("img").all():
+                vehicle_img.scroll_into_view_if_needed()
+                vehicle_img.evaluate("(img)=>img.decode()")
             check(links.evaluate_all("(els)=>els.every(x=>x.offsetWidth>0 && x.querySelector('img').naturalWidth>0)"),f"{width}: {path} thumbnails loaded")
             horizontal=page.evaluate("""() => ({scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth,offenders:[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>1&&(r.right>innerWidth+1||r.left<-1)}).slice(0,16).map(e=>({tag:e.tagName,classes:String(e.className).slice(0,110),text:(e.innerText||'').slice(0,35),box:e.getBoundingClientRect().toJSON()}))})""")
             if horizontal['scrollWidth']>width:
@@ -59,6 +62,9 @@ with sync_playwright() as playwright:
             check(response is not None and response.status==200,f"{width}: {path} rendered")
             cards=page.locator(".approved-tour-card")
             check(cards.count()==expectedCount,f"{width}: {path} exactly {expectedCount} approved photos")
+            for gallery_img in cards.locator("img").all():
+                gallery_img.scroll_into_view_if_needed()
+                gallery_img.evaluate("(img)=>img.decode()")
             check(cards.evaluate_all("(els)=>els.every(e=>e.querySelector('img').complete && e.querySelector('img').naturalWidth>0)"),f"{width}: {path} all gallery photos decoded")
             check(page.evaluate("document.documentElement.scrollWidth<=window.innerWidth"),f"{width}: {path} no horizontal overflow")
             if width in (1440,390):
