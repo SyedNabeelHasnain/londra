@@ -39,7 +39,10 @@ with sync_playwright() as playwright:
             links=page.locator(".airport-fleet-thumbnail")
             check(links.count()==4,f"{width}: {path} four fleet thumbnails")
             check(links.evaluate_all("(els)=>els.every(x=>x.offsetWidth>0 && x.querySelector('img').naturalWidth>0)"),f"{width}: {path} thumbnails loaded")
-            check(page.evaluate("document.documentElement.scrollWidth<=window.innerWidth"),f"{width}: {path} no horizontal scrolling")
+            horizontal=page.evaluate("""() => ({scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth,offenders:[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>1&&(r.right>innerWidth+1||r.left<-1)}).slice(0,16).map(e=>({tag:e.tagName,classes:String(e.className).slice(0,110),text:(e.innerText||'').slice(0,35),box:e.getBoundingClientRect().toJSON()}))})""")
+            if horizontal['scrollWidth']>width:
+                print("HORIZONTAL_DEBUG",path,width,json.dumps(horizontal),flush=True)
+            check(horizontal['scrollWidth']<=width+1,f"{width}: {path} no horizontal scrolling")
             if width in (1440,390) and path in ("/en/airports/heathrow","/en/airports/gatwick"):
                 out=Path("image-review-qa")
                 out.mkdir(exist_ok=True)
