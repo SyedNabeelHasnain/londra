@@ -28,8 +28,14 @@ with sync_playwright() as playwright:
         page=context.new_page()
         js_errors=[]
         page.on("pageerror",lambda err:js_errors.append(str(err)))
+        from pathlib import Path
+        cssfiles=list((Path(__file__).resolve().parents[1]/"public_html/build/assets").glob("app-*.css"))
+        check(len(cssfiles)==1,f"{width}: exactly one compiled public CSS bundle exists")
         for path,reference in expected:
             response=page.goto(base+path,wait_until="domcontentloaded",timeout=30000)
+            # The isolated smoke host runs independently of the configured public
+            # domain; apply the exact freshly compiled CSS from disk for visual QA.
+            page.add_style_tag(content=cssfiles[0].read_text(encoding="utf-8"))
             check(response is not None and response.status==200,f"{width}: {path} rendered HTTP 200")
             photo=page.locator(".airport-original-photo")
             check(photo.count()==1,f"{width}: {path} exactly one approved original")
@@ -49,6 +55,7 @@ with sync_playwright() as playwright:
                 page.screenshot(path=str(out/f"{reference}-{width}.png"),full_page=True)
         for path,expectedCount in [("/en/tours/london",11),("/en/tours/beyond-london",9)]:
             response=page.goto(base+path,wait_until="domcontentloaded",timeout=30000)
+            page.add_style_tag(content=cssfiles[0].read_text(encoding="utf-8"))
             check(response is not None and response.status==200,f"{width}: {path} rendered")
             cards=page.locator(".approved-tour-card")
             check(cards.count()==expectedCount,f"{width}: {path} exactly {expectedCount} approved photos")
