@@ -49,11 +49,11 @@ with zipfile.ZipFile(io.BytesIO(innerBytes)) as inner:
         assert hashlib.sha256(inner.read(r["file"])).hexdigest()==r["sha256"]
     rights_path=PUB/"assets/approved/IMAGE-CREDITS.txt"
     rights_path.write_bytes(inner.read("Londra_Finalized_Images_Content.txt"))
-    gallery_data=[{k:r.get(k) for k in ["code","group","destination","title","credit","license_url","source_url","alt","caution","role"]} for r in images if r["kind"]=="tour"]
+    gallery_data=[{**{k:r.get(k) for k in ["code","group","destination","title","credit","license_url","source_url","alt","caution","role"]}, "width":int(r["output"]["converted_dimensions"][0]),"height":int(r["output"]["converted_dimensions"][1])} for r in images if r["kind"]=="tour"]
     assert len(gallery_data)==20
     (PRIV/"database/content/finalized-photo-gallery.json").write_text(json.dumps(gallery_data,ensure_ascii=False,indent=2),encoding="utf-8")
     manifest_public={
-        "images":{code:{"reference":code,"airport":airport,"source":source_map[code]["source_url"],"credit":source_map[code]["credit"],"license_url":source_map[code]["license_url"],"date":source_map[code]["date"]} for airport,code in mapping.items()},
+        "images":{code:{"reference":code,"airport":airport,"source":source_map[code]["source_url"],"credit":source_map[code]["credit"],"license_url":source_map[code]["license_url"],"date":source_map[code]["date"],"dimensions":source_map[code]["output"]["converted_dimensions"]} for airport,code in mapping.items()},
         "fleet_artwork_note":"Four already-existing website artworks, not commercial rights approval for third-party photographs.",
         "no_vehicle_composites":True
     }
@@ -81,6 +81,7 @@ if ($airportCode === null) { throw new \LogicException('Unexpected airport photo
 $photoPath = 'assets/approved/airports/'.$airportCode.'.webp';
 $photoFull = public_path($photoPath);
 if (!is_file($photoFull)) { throw new \RuntimeException('An approved airport photograph is missing'); }
+$airportSizes=json_decode((string)file_get_contents(database_path('content/finalized-airport-gallery.json')),true,64,JSON_THROW_ON_ERROR)['images'][$airportCode]['dimensions'];
 $airportDisplay = [
  'heathrow'=>'Heathrow Airport','gatwick'=>'Gatwick Airport','stansted'=>'Stansted Airport',
  'luton'=>'Luton Airport','london-city'=>'London City Airport','southend'=>'Southend Airport'
@@ -100,7 +101,7 @@ $labelFleet = ['en'=>'Explore our fleet','it'=>'Scopri la nostra flotta','es'=>'
 ?>
 <figure class="page-hero-photo media-frame airport-original">
   <img class="airport-original-photo" src="<?= $e($base.$photoPath) ?>"
-    alt="<?= $e($airportAlt) ?>" loading="eager" decoding="async" fetchpriority="high">
+    alt="<?= $e($airportAlt) ?>" width="<?= (int)$airportSizes[0] ?>" height="<?= (int)$airportSizes[1] ?>" loading="eager" decoding="async" fetchpriority="high">
   <nav class="airport-fleet-thumbnails" aria-label="<?= $e($labelFleet) ?>">
     <?php foreach($vehiclesFeatured as $featured):
         if (!isset($cat[$featured['key']])) { continue; }
@@ -136,7 +137,7 @@ $attribution=['en'=>'Photograph credit','it'=>'Crediti fotografici','es'=>'Créd
     <?php foreach($selected as $r): $photoPath='assets/approved/tours/'.$r['code'].'.webp'; ?>
     <figure class="approved-tour-card">
        <img src="<?= $e($base.$photoPath) ?>"
-         alt="<?= $e($r['alt'] ?: $r['destination'].' — '.$r['title']) ?>"
+         alt="<?= $e($r['alt'] ?: $r['destination'].' — '.$r['title']) ?>" width="<?= (int)$r['width'] ?>" height="<?= (int)$r['height'] ?>"
          loading="<?= $r['code']===$lead?'eager':'lazy' ?>" decoding="async">
        <figcaption>
          <strong><?= $e($r['destination']) ?></strong>
