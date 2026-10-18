@@ -1,0 +1,65 @@
+name: Londra live public pages asset and policy read-only audit
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths: [.github/workflows/live-asset-policy-check-2026-10-18.yml]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect only public HTML image references and legal URL responses
+        shell: bash
+        run: |
+          python - <<'PY'
+          import html.parser, json, re, urllib.request, urllib.error, urllib.parse
+          from pathlib import Path
+          root="https://londratransfers.co.uk"
+          paths=["/en","/en/tours","/en/tours/london","/en/tours/beyond-london","/en/airports","/en/airports/heathrow","/en/privacy","/en/terms","/en/cancellation-refund","/robots.txt"]
+          class Scan(html.parser.HTMLParser):
+              def __init__(self):
+                  super().__init__();self.images=[];self.links=[];self.sources=[];self.forms=[]
+              def handle_starttag(self,tag,attrs):
+                  d=dict(attrs)
+                  if tag=="img": self.images.append({k:v for k,v in d.items() if k in ("src","srcset","alt","loading")})
+                  if tag=="source": self.sources.append({k:v for k,v in d.items() if k in ("srcset","type")})
+                  if tag=="a": self.links.append(d.get("href",""))
+                  if tag=="form": self.forms.append({k:v for k,v in d.items() if k in ("action","method")})
+          report={"checked_by":"GitHub Actions read-only GET; no passwords, cookies or modifications","paths":[]}
+          for path in paths:
+              req=urllib.request.Request(root+path,headers={"User-Agent":"Mozilla/5.0 (Londra public asset review)","Cache-Control":"no-cache"})
+              item={"path":path}
+              try:
+                  try: resp=urllib.request.urlopen(req,timeout=15)
+                  except urllib.error.HTTPError as e: resp=e
+                  with resp:
+                      raw=resp.read(300000).decode("utf-8","replace")
+                      item["status"]=resp.status
+                      if path=="/robots.txt":item["robots_text"]=raw[:300]
+                      else:
+                          p=Scan();p.feed(raw)
+                          sources=[img.get("src","") for img in p.images]+[z.get("srcset","") for z in p.sources]
+                          item.update({
+                            "img_count":len(p.images),
+                            "picture_source_count":len(p.sources),
+                            "img_src_examples":sources[:12],
+                            "image_alt_examples":[i.get("alt","")[:70] for i in p.images[:7]],
+                            "webp_references":sum(".webp" in i for i in sources),
+                            "approved_webp_references":sum(bool(re.search(r"/(L0[1-9]|L10|L11|U0[1-9]|LHR-|LGW-|STN-|LTN-|LCY-|SEN-)\\w*(?:-R1)?\\.webp",i,re.I)) for i in sources),
+                            "has_buckingham_palace":"Buckingham Palace" in raw,
+                            "has_windsor_castle":"Windsor Castle" in raw,
+                            "forms":p.forms[:4],
+                            "privacy_links":[u for u in p.links if "privacy" in u.lower()][:8]
+                          })
+              except Exception as e:item["error"]=type(e).__name__+": "+str(e)[:200]
+              print("PUBLIC_ASSET_AUDIT",json.dumps(item,ensure_ascii=False),flush=True)
+              report["paths"].append(item)
+          Path("live-asset-policy-check-2026-10-18.json").write_text(json.dumps(report,indent=2,ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Public-Assets-and-Legal-Links-ReadOnly-2026-10-18
+          path: live-asset-policy-check-2026-10-18.json
+          retention-days: 14
