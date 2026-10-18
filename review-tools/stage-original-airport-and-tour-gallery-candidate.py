@@ -4,7 +4,7 @@ source checkout. No production/database/network upload; ZIP created only by CI."
 import hashlib, io, json, os, requests, zipfile
 from pathlib import Path
 
-ROOT=Path.cwd()
+ROOT=Path(__file__).resolve().parents[1]
 PUB=ROOT/"public_html"
 PRIV=ROOT/"londra-private"
 REPO=os.environ["GITHUB_REPOSITORY"]
