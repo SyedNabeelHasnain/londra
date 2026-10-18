@@ -18,7 +18,7 @@ jobs:
           from urllib.parse import urlparse
           now=datetime.datetime.now(datetime.timezone.utc).isoformat()
           hostname="londratransfers.co.uk"
-          paths=["/", "/en", "/en/services", "/en/tour", "/en/contact", "/admin", "/up", "/robots.txt"]
+          paths=["/", "/en", "/en/services", "/en/tour", "/en/tours", "/en/tours/london", "/en/tours/beyond-london", "/en/airports", "/en/airports/heathrow", "/en/fleet", "/en/contact", "/en/enquiry", "/en/privacy", "/it", "/es", "/admin", "/up", "/robots.txt"]
           report={"checked_at_utc":now,"domain":hostname,"checks":[],"policy":"Read-only GET requests only. No login, mutations, POST, credentials or access to private data."}
           try:
               ips=sorted(set(r[4][0] for r in socket.getaddrinfo(hostname,443,type=socket.SOCK_STREAM)))
