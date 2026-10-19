@@ -334,6 +334,8 @@ html[data-theme=light] .button{border-color:var(--onyx)}html[data-theme=light] .
 @media(max-width:800px){.header-enquiry{display:none}}
 
 .gallery-dialog .dialog-top h2{font:500 13px/1.65 var(--sans);letter-spacing:.04em;text-transform:none}
+.fleet-gallery-direct{display:inline-flex;margin-top:12px;align-items:center;gap:10px}
+.fleet-gallery-direct:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 .approved-luggage{display:grid;gap:8px;margin-top:22px;font-size:13px}.approved-luggage>li{display:flex;justify-content:space-between;align-items:center;gap:20px;border-top:1px solid var(--line);padding-top:8px}.approved-luggage strong{font-size:16px;font-weight:500}.detail-summary .approved-luggage{max-width:420px}
 .form-field input:is(:autofill,:-webkit-autofill){-webkit-text-fill-color:var(--text);caret-color:var(--text);box-shadow:0 0 0 1000px var(--surface) inset}
