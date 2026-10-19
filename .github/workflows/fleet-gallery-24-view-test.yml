@@ -1,0 +1,137 @@
+name: Fleet gallery 24-view isolated regression
+on:
+  push:
+    branches: [londra-startup-test-runtime-20261014]
+    paths:
+      - .github/workflows/fleet-gallery-24-view-test.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up application-compatible PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: ctype,curl,dom,exif,fileinfo,gd,hash,intl,json,mbstring,openssl,pdo,pdo_mysql,session,tokenizer,xml,xmlwriter,zip
+          tools: composer:v2
+          coverage: none
+      - name: PHP syntax and approvals register
+        run: |
+          set -euo pipefail
+          php -l londra-private/app/Services/FleetPhotoGallery.php
+          php -l londra-private/app/Filament/Pages/FleetPhotoGalleries.php
+          php -l londra-private/resources/views/atelier/fleet-photo-gallery.php
+          php -l londra-private/app/Http/Controllers/PublicPageController.php
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('review-records/approved-fleet-24-gallery-index.json').read_text())
+          counts={'E-Class':5,'S-Class':7,'V-Class':7,'Vito':5}
+          assert {k:len(v) for k,v in data['models'].items()}==counts
+          assert data['excluded']==['E06','E07']
+          assert all(r['commercial_rights'].startswith('unverified') for l in data['models'].values() for r in l)
+          print('FLEET_SOURCE_REGISTER_PASSED',sum(map(len,data['models'].values())),'appearance-only selections; public rights not inferred')
+          PY
+      - name: Install isolated PHP test dependencies
+        working-directory: londra-private
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run rights-gated application model tests
+        working-directory: londra-private
+        run: vendor/bin/phpunit tests/Unit/FleetPhotoGalleryTest.php --colors=never
+      - name: Make synthetic local HTML fixtures from the actual PHP gallery template
+        run: |
+          mkdir -p fleet-qa
+          cat > fleet-qa-build.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          $approved = [
+            'e-class'=>['E01','E02','E03','E04','E05'],
+            's-class'=>['S01','S02','S03','S04','S05','S06','S07'],
+            'v-class'=>['V01','V02','V03','V04','V05','V06','V07'],
+            'vito'=>['T01','T02','T03','T04','T05'],
+          ];
+          $title = ['e-class'=>'Mercedes-Benz E-Class','s-class'=>'Mercedes-Benz S-Class','v-class'=>'Mercedes-Benz V-Class','vito'=>'Mercedes-Benz Vito'];
+          $e = static fn($x) => htmlspecialchars((string)$x,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+          $code = $argv[1] ?? 'e-class';
+          if (!isset($approved[$code])) { throw new RuntimeException('Unknown model'); }
+          $v = ['locale'=>'en','fleet_gallery'=>array_map(static fn($id) => [
+            'reference'=>$id,'key'=>'fleet-'.$code.'-'.strtolower($id),
+            'alt'=>'SYNTHETIC TEST PLACEHOLDER '.$id.' - NOT A PUBLISHED VEHICLE PHOTO'
+          ],$approved[$code])];
+          $vehicle = ['code'=>$code];
+          $p = ['title'=>$title[$code]];
+          $base = base64_encode(file_get_contents('public_html/assets/photos/mercedes-'.$code.'-480.webp'));
+          $photos = static fn(?string $key, string $class = '', bool $priority = false, ?string $sizes = null)
+               => '<img src="data:image/webp;base64,'.$base.'" alt="Synthetic test photograph only" width="480" height="300">';
+          ob_start();
+          require 'londra-private/resources/views/atelier/fleet-photo-gallery.php';
+          $galleryHtml = ob_get_clean();
+          $styles = file_get_contents('londra-private/resources/css/site.css');
+          $js = file_get_contents('londra-private/resources/js/app.js');
+          file_put_contents('fleet-qa/'.$code.'.html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'.$styles.'</style></head><body data-ui="{}"><main class="public-main" style="max-width:1400px;margin:auto"><p>TEST FIXTURE ONLY — REPEATED FIRST-PARTY ARTWORK IS NOT A RELEASE GALLERY.</p>'.$galleryHtml.'</main><script>'.$js.'</script></body></html>');
+          echo $code.' rendered '.count($approved[$code])." reference buttons\n";
+          PHP
+          for id in e-class s-class v-class vito; do php fleet-qa-build.php "$id"; done
+      - name: Install Playwright browser
+        run: |
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+      - name: Verify actual template and gallery JS at desktop/tablet/mobile widths
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from playwright.sync_api import sync_playwright
+          counts={'e-class':5,'s-class':7,'v-class':7,'vito':5}
+          passed=0
+          with sync_playwright() as pw:
+              browser=pw.chromium.launch()
+              for model,count in counts.items():
+                  for width in (1440,768,390,320):
+                      context=browser.new_context(viewport={'width':width,'height':950})
+                      context.set_offline(True)
+                      page=context.new_page()
+                      errors=[]
+                      page.on('pageerror',lambda e:errors.append(str(e)))
+                      page.goto(Path('fleet-qa/'+model+'.html').resolve().as_uri())
+                      page.wait_for_function("Array.from(document.images).every(i=>i.complete&&i.naturalWidth>0)")
+                      assert page.locator('[data-angle-open]').count()==count,(model,width,'gallery count')
+                      assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'),(model,width,'overflow')
+                      passed+=2
+                      page.locator('[data-angle-open]').first.click()
+                      assert page.locator('[data-fleet-angles-dialog]').evaluate('e=>e.open'),(model,width,'dialog')
+                      assert page.locator('[data-angle-position]').inner_text()==f'1 / {count}',(model,width,'position')
+                      assert 'SYNTHETIC TEST PLACEHOLDER' in page.locator('[data-angle-caption]').inner_text()
+                      passed+=3
+                      page.locator('[data-angle-next]').click()
+                      assert page.locator('[data-angle-position]').inner_text()==f'2 / {count}',(model,width,'next')
+                      page.keyboard.press('ArrowLeft')
+                      assert page.locator('[data-angle-position]').inner_text()==f'1 / {count}',(model,width,'keyboard left')
+                      page.locator('[data-angle-prev]').click()
+                      assert page.locator('[data-angle-position]').inner_text()==f'{count} / {count}',(model,width,'wrap')
+                      passed+=3
+                      page.keyboard.press('Escape')
+                      assert not page.locator('[data-fleet-angles-dialog]').evaluate('e=>e.open'),(model,width,'Escape close')
+                      assert page.locator('[data-angle-open]').first.evaluate('e=>document.activeElement===e'),(model,width,'focus restoration')
+                      assert not errors,(model,width,errors)
+                      passed+=3
+                      if width in (1440,390):
+                          page.screenshot(path='fleet-qa/'+model+'-'+str(width)+'.png',full_page=True)
+                      context.close()
+              browser.close()
+          Path('fleet-qa/QA-RESULTS.json').write_text(json.dumps({'status':'passed','checks':passed,'models':counts,'widths':[1440,768,390,320],'synthetic_images_only':True,'production_image_rights_approved':False,'latest_production_zip_modified':False},indent=2))
+          print('FLEET_GALLERY_RESPONSIVE_TESTS_PASSED',passed)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Londra-Fleet-Gallery-24-Reference-Private-QA
+          path: fleet-qa/
+          retention-days: 14
+          compression-level: 4
