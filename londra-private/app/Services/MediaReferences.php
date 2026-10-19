@@ -21,6 +21,8 @@ final class MediaReferences
         $references = self::GLOBAL_REFERENCES[$key] ?? [];
         foreach (Page::where('image_key', $key)->orderBy('key')->pluck('key') as $page) { $references[] = 'Page: '.$page; }
         foreach (Vehicle::where('image_key', $key)->orderBy('code')->pluck('name') as $vehicle) { $references[] = 'Vehicle: '.$vehicle; }
+        $gallerySettings = \App\Models\Setting::find('fleet-photo-galleries')?->value ?? [];
+        $references = array_merge($references, \App\Services\FleetPhotoGallery::referencesFor($key, (array)$gallerySettings));
         return array_values(array_unique($references));
     }
     public function isAvailable(?string $key): bool
