@@ -1,0 +1,476 @@
+{
+  "project": "Londra Transfers",
+  "decision_basis": "User's finalized fleet visual appearance decisions, originally reviewed 14 October 2026",
+  "scope": "24 selected reference photographs for four vehicle categories; no AI substitution",
+  "public_use_permission": "NOT ESTABLISHED: photos are from other commercial fleet operators",
+  "excluded": [
+    "E06",
+    "E07"
+  ],
+  "models": {
+    "E-Class": [
+      {
+        "id": "E01",
+        "model": "E-Class",
+        "title": "Front view in a landscaped setting",
+        "source_page": "https://www.homejames.info/fleet/mercedes-e-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f3a6f53a5c311aa277c21_Home-James-E-CLASS_8.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "E02",
+        "model": "E-Class",
+        "title": "Side profile on an estate driveway",
+        "source_page": "https://www.homejames.info/fleet/mercedes-e-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f37b34eaa8707f8468087_Home-James-E-CLASS_7.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "E03",
+        "model": "E-Class",
+        "title": "Rear cabin and legroom",
+        "source_page": "https://www.homejames.info/fleet/mercedes-e-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f4e8eca161d1ab87607ef_Home-James-E-CLASS_11.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "E04",
+        "model": "E-Class",
+        "title": "Cabin and panoramic roof",
+        "source_page": "https://www.homejames.info/fleet/mercedes-e-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f364082c8a72d5fd6976b_Home-James-E-CLASS_6.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "E05",
+        "model": "E-Class",
+        "title": "Guest seated in the rear cabin",
+        "source_page": "https://www.homejames.info/fleet/mercedes-e-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f42b835984ee22e9bbdec_Home-James-E-CLASS_10.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      }
+    ],
+    "S-Class": [
+      {
+        "id": "S01",
+        "model": "S-Class",
+        "title": "Front three-quarter at a country-house venue",
+        "source_page": "https://www.homejames.info/fleet/mercedes-s-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698e49f12298ab6ebf5070a6_Home-James-S-CLASS.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "S02",
+        "model": "S-Class",
+        "title": "Rear three-quarter in an estate setting",
+        "source_page": "https://www.homejames.info/fleet/mercedes-s-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698e4b9e78a9d558c9cb03b9_Home-James-S-CLASS_2.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "S03",
+        "model": "S-Class",
+        "title": "Chauffeur and guests beside the saloon",
+        "source_page": "https://www.homejames.info/fleet/mercedes-s-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698e55c52d5e8035f8b3689d_Home-James-S-CLASS_5.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "S04",
+        "model": "S-Class",
+        "title": "Rear seating and cabin finish",
+        "source_page": "https://www.homejames.info/fleet/mercedes-s-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698e56c157bbd3e3683815e6_hf_20260212_223720_c6194356-ddd4-4573-9eed-8155344293b3.jpeg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1376 × 768 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "S05",
+        "model": "S-Class",
+        "title": "Door trim and seat controls",
+        "source_page": "https://www.homejames.info/fleet/mercedes-s-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698e57b1ea45537262a0f099_hf_20260212_223946_c814376a-4b24-428b-a06b-57985ee66099.png",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1376 × 768 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "S06",
+        "model": "S-Class",
+        "title": "Rear armrest and passenger controls",
+        "source_page": "https://www.homejames.info/fleet/mercedes-s-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698e59b5f42be3eeb24a00da_Home-James-S-CLASS_6.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "S07",
+        "model": "S-Class",
+        "title": "Right-hand-drive cockpit with driver",
+        "source_page": "https://www.homejames.info/fleet/mercedes-s-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698a31eec6554eb4954557bc_Home-James-1.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      }
+    ],
+    "V-Class": [
+      {
+        "id": "V01",
+        "model": "V-Class",
+        "title": "Front three-quarter beside a stone venue",
+        "source_page": "https://www.homejames.info/fleet/mercedes-v-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f5bd6ca161d1ab878d764_Home-James-V-CLASS9.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "V02",
+        "model": "V-Class",
+        "title": "Arrival setting on a country-house driveway",
+        "source_page": "https://www.homejames.info/fleet/mercedes-v-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698ef08b923298888f6c75c2_Home-James-V-CLASS.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "V03",
+        "model": "V-Class",
+        "title": "Straight-on front view",
+        "source_page": "https://www.homejames.info/fleet/mercedes-v-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f5e9088ba0d47c15a0c40_Home-James-V-CLASS10.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "V04",
+        "model": "V-Class",
+        "title": "Passenger entry and cabin",
+        "source_page": "https://www.homejames.info/fleet/mercedes-v-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f26654222006caffbddd3_Home-James-V-CLASS4.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "V05",
+        "model": "V-Class",
+        "title": "Facing-seat passenger cabin",
+        "source_page": "https://www.homejames.info/fleet/mercedes-v-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f2c11a5887847159822e3_Home-James-V-CLASS7.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1376 × 768 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "V06",
+        "model": "V-Class",
+        "title": "Rear seating and cabin space",
+        "source_page": "https://www.homejames.info/fleet/mercedes-v-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f294f8edf6f0cb859e7f2_Home-James-V-CLASS6.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "V07",
+        "model": "V-Class",
+        "title": "Chauffeur welcoming a guest",
+        "source_page": "https://www.homejames.info/fleet/mercedes-v-class",
+        "image_url": "https://cdn.prod.website-files.com/556752a2032b3b221ddbc9fc/698f5f5659d63cc0f034eda0_Home-James-V-CLASS11.jpg",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "2000 × 1116 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      }
+    ],
+    "Vito": [
+      {
+        "id": "T01",
+        "model": "Vito",
+        "title": "Front three-quarter: technical reference",
+        "source_page": "https://www.newdirection.se/en/flotta/mercedes-vito-tourer-8-sits",
+        "image_url": "https://cdn.sanity.io/images/z9yajrvs/production/080137182bebbdb53fe407639fe1f5ea8ab86a96-1200x800.jpg?w=1920&q=100&fit=clip&auto=format",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1920 × 1280 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "T02",
+        "model": "Vito",
+        "title": "Full side profile: technical reference",
+        "source_page": "https://www.newdirection.se/en/flotta/mercedes-vito-tourer-8-sits",
+        "image_url": "https://cdn.sanity.io/images/z9yajrvs/production/de15a1e010c03eae4012da0a4188c5cabf4da131-1200x800.jpg?w=1920&q=100&fit=clip&auto=format",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1920 × 1280 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "T03",
+        "model": "Vito",
+        "title": "Open-door passenger seating",
+        "source_page": "https://www.newdirection.se/en/flotta/mercedes-vito-tourer-8-sits",
+        "image_url": "https://cdn.sanity.io/images/z9yajrvs/production/9b766a78bc98f9b6bd0f4c36060f27a5ad331acc-1200x800.jpg?w=1920&q=100&fit=clip&auto=format",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1920 × 1280 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "T04",
+        "model": "Vito",
+        "title": "Dashboard and front cabin",
+        "source_page": "https://www.newdirection.se/en/flotta/mercedes-vito-tourer-8-sits",
+        "image_url": "https://cdn.sanity.io/images/z9yajrvs/production/bf22abfc6c952e6ea6ad86099506172b5952b5b9-1200x800.jpg?w=1920&q=100&fit=clip&auto=format",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1920 × 1280 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      },
+      {
+        "id": "T05",
+        "model": "Vito",
+        "title": "Rear seating and luggage access",
+        "source_page": "https://www.newdirection.se/en/flotta/mercedes-vito-tourer-8-sits",
+        "image_url": "https://cdn.sanity.io/images/z9yajrvs/production/d1ee8f9e749ad79035d045734937ce0d84d81878-1200x800.jpg?w=1920&q=100&fit=clip&auto=format",
+        "original_shortlist_metadata": [
+          {
+            "label": "Original file dimensions",
+            "value": "1920 × 1280 px"
+          },
+          {
+            "label": "Publication status",
+            "value": "Not licensed or approved for the website"
+          }
+        ],
+        "appearance": "approved",
+        "commercial_rights": "unverified; DO NOT publish until licence or permission is established"
+      }
+    ]
+  }
+}
