@@ -7,6 +7,17 @@ on:
       - .github/workflows/image-integration-candidate-2026-10-18.yml
       - review-tools/stage-original-airport-and-tour-gallery-candidate.py
       - review-tools/candidate-web-smoke.py
+      - londra-private/app/Services/FleetPhotoGallery.php
+      - londra-private/app/Filament/Pages/FleetPhotoGalleries.php
+      - londra-private/app/Http/Controllers/PublicPageController.php
+      - londra-private/app/Providers/Filament/AdminPanelProvider.php
+      - londra-private/app/Services/MediaReferences.php
+      - londra-private/resources/views/atelier/page.php
+      - londra-private/resources/views/atelier/fleet-photo-gallery.php
+      - londra-private/resources/views/filament/pages/fleet-photo-galleries.blade.php
+      - londra-private/resources/js/app.js
+      - londra-private/resources/css/site.css
+      - londra-private/tests/Unit/FleetPhotoGalleryTest.php
   workflow_dispatch:
 
 permissions:
@@ -101,6 +112,14 @@ jobs:
           php -l resources/views/atelier/airport-hero.php
           php -l resources/views/atelier/approved-tour-gallery.php
           php -l resources/views/atelier/page.php
+          php -l resources/views/atelier/fleet-photo-gallery.php
+          php -l app/Services/FleetPhotoGallery.php
+          php -l app/Filament/Pages/FleetPhotoGalleries.php
+          php -l app/Services/MediaReferences.php
+          php -l app/Http/Controllers/PublicPageController.php
+          php -l app/Providers/Filament/AdminPanelProvider.php
+          php -l tests/Unit/FleetPhotoGalleryTest.php
+          node --check resources/js/app.js
       - name: Compile the production website and CMS assets
         run: npm run build
       - name: Publish Filament assets
