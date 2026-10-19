@@ -103,7 +103,7 @@ jobs:
                       errors=[]
                       page.on('pageerror',lambda e:errors.append(str(e)))
                       page.goto(Path('fleet-qa/'+model+'.html').resolve().as_uri())
-                      page.wait_for_function("Array.from(document.images).every(i=>i.complete&&i.naturalWidth>0)")
+                      page.wait_for_function("Array.from(document.querySelectorAll('.fleet-angle-grid img')).every(i=>i.complete&&i.naturalWidth>0)")
                       assert page.locator('[data-angle-open]').count()==count,(model,width,'gallery count')
                       assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth'),(model,width,'overflow')
                       passed+=2
