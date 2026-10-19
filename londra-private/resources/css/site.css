@@ -384,3 +384,34 @@ html[data-theme=light] .button{border-color:var(--onyx)}html[data-theme=light] .
 .directory-section,.detail-highlights,.spread-highlights{grid-template-columns:minmax(0,1fr)}.public-main .wrap{padding-inline:22px}.hero-copy h1,.page-hero h1,.contact-copy h1{font-size:clamp(38px,9cqi,47px)}.contact-paper{padding:27px 22px}.contact-paper h2{font-size:33px}.contact-methods strong{font-size:22px}.destination-copy{padding:26px 22px}.destination-copy h2{font-size:37px}.airport-links{grid-template-columns:minmax(0,1fr)}.principles>li{grid-template-columns:minmax(0,1fr);gap:8px}.fleet-copy :is(h2,h3){font-size:40px}.journey-aside{padding:25px}.journey-aside h2{font-size:31px}
 }
 @media print{.public-shell{display:block;padding:0;max-width:none}.public-main{container-type:normal}.public-main h1{font-size:35px}.public-main h2{font-size:26px}.site-sidebar,.sidebar-mobile-controls,.sidebar-drawer{display:none!important}}
+
+
+/* Rights-cleared, individual exterior/interior fleet photo galleries. */
+.fleet-angles{border-top:1px solid var(--line);padding-block:55px 35px}
+.fleet-angles-heading{margin-bottom:27px}
+.fleet-angles-heading h2{font-family:Georgia,serif;font-weight:400;font-size:clamp(29px,3.5cqi,43px);margin:6px 0 13px}
+.fleet-angles-caption{color:var(--muted, var(--muted-text, #BDA177));font-size:13px}
+.fleet-angle-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.fleet-angle-card{min-width:0;margin:0;border:1px solid var(--line)}
+.fleet-angle-open{display:block;width:100%;padding:0;background:transparent;border:0;color:inherit;cursor:pointer;text-align:left}
+.fleet-angle-open:focus-visible,.fleet-angle-dialog-close:focus-visible,.fleet-angle-dialog-footer button:focus-visible{outline:2px solid #BDA177;outline-offset:4px}
+.fleet-angle-frame{display:block;aspect-ratio:16/10;background:#000;overflow:hidden}
+.fleet-angle-frame img{width:100%;height:100%;display:block;object-fit:contain;transition:transform .3s ease}
+.fleet-angle-open:hover .fleet-angle-frame img{transform:scale(1.025)}
+.fleet-angle-bottom{display:flex;align-items:start;gap:12px;padding:16px 17px;min-height:76px}
+.fleet-angle-ref{font-size:11px;letter-spacing:.14em;color:#BDA177;flex-shrink:0;padding-top:2px}
+.fleet-angle-title{font-size:13px;line-height:1.45;min-width:0;overflow-wrap:anywhere}
+.fleet-angle-plus{color:#BDA177;font-size:20px;margin-left:auto;line-height:1}
+.fleet-angles-dialog{width:min(1220px,96vw);max-height:96dvh;padding:18px;background:#0B0B0B;color:#F7F7F5;border:1px solid #BDA177}
+.fleet-angles-dialog::backdrop{background:rgba(0,0,0,.88)}
+.fleet-angle-dialog-bar,.fleet-angle-dialog-footer{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.fleet-angle-dialog-bar h2{font-family:Georgia,serif;font-size:23px;font-weight:400;margin:0}
+.fleet-angle-dialog-bar button,.fleet-angle-dialog-footer button{border:1px solid #BDA177;background:none;color:#F7F7F5;min-height:44px;padding:9px 14px;cursor:pointer}
+.fleet-angle-dialog-bar button:hover,.fleet-angle-dialog-footer button:hover{background:#BDA177;color:#000}
+.fleet-angle-stage{margin:16px 0;background:#000;display:flex;flex-direction:column;align-items:center}
+.fleet-angle-stage img{display:block;width:100%;height:auto;max-height:70dvh;object-fit:contain}
+.fleet-angle-stage figcaption{padding:9px 15px;color:#F1ECD9;font-size:13px;text-align:center}
+.fleet-angle-dialog-footer [data-angle-position]{font-size:12px;color:#BDA177}
+@container(max-width:850px){.fleet-angle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container(max-width:500px){.fleet-angles{padding-block:34px}.fleet-angle-grid{grid-template-columns:minmax(0,1fr);gap:14px}.fleet-angle-bottom{min-height:0}.fleet-angles-dialog{padding:10px;width:97vw}.fleet-angle-dialog-bar h2{font-size:18px}.fleet-angle-dialog-bar button{font-size:12px;padding:8px}.fleet-angle-dialog-footer button{font-size:12px;padding:8px;min-height:44px}}
+@media(prefers-reduced-motion:reduce){.fleet-angle-frame img{transition:none}.fleet-angle-open:hover .fleet-angle-frame img{transform:none}}
