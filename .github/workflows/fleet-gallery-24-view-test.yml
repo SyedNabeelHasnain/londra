@@ -71,7 +71,7 @@ jobs:
           $p = ['title'=>$title[$code]];
           $base = base64_encode(file_get_contents('public_html/assets/photos/mercedes-'.$code.'-480.webp'));
           $photos = static fn(?string $key, string $class = '', bool $priority = false, ?string $sizes = null)
-               => '<img src="data:image/webp;base64,'.$base.'" alt="Synthetic test photograph only" width="480" height="300">';
+               => '<img src="data:image/webp;base64,'.$base.'" alt="SYNTHETIC TEST PLACEHOLDER '.htmlspecialchars((string)$key,ENT_QUOTES).'" width="480" height="300">';
           ob_start();
           require 'londra-private/resources/views/atelier/fleet-photo-gallery.php';
           $galleryHtml = ob_get_clean();
