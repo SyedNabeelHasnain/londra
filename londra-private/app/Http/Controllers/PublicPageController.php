@@ -39,15 +39,18 @@ final class PublicPageController
         $v['schema']=SiteViewModel::schema($v);
         $v['css_url']=app(\Illuminate\Foundation\Vite::class)->asset('resources/css/app.css');
         $v['js_url']=app(\Illuminate\Foundation\Vite::class)->asset('resources/js/app.js');
-        if ($translation->page->kind === 'vehicle') {
-            $matched = null;
+        if (in_array($translation->page->kind, ['home', 'fleet', 'vehicle'], true)) {
+            $rights = (array) (Setting::find('fleet-photo-galleries')?->value ?? []);
+            $v['fleet_gallery_available'] = [];
             foreach ($vehicles as $candidate) {
-                if (($candidate['page_key'] ?? '') === $translation->page->key) {
-                    $matched = $candidate; break;
+                $code = (string) ($candidate['code'] ?? '');
+                $gallery = \App\Services\FleetPhotoGallery::visible($code, $rights, $v['media'], $locale);
+                if (count($gallery) < 2) { continue; }
+                $v['fleet_gallery_available'][$code] = count($gallery);
+                if ($translation->page->kind === 'vehicle' && ($candidate['page_key'] ?? '') === $translation->page->key) {
+                    $v['fleet_gallery'] = $gallery;
                 }
             }
-            $rights = Setting::find('fleet-photo-galleries')?->value ?? [];
-            $v['fleet_gallery'] = $matched ? \App\Services\FleetPhotoGallery::visible((string)$matched['code'], (array)$rights, $v['media'], $locale) : [];
         }
         return view('site',['v'=>$v]);
     }
