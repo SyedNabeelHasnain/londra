@@ -4,6 +4,10 @@ on:
     branches: [londra-startup-test-runtime-20261014]
     paths:
       - .github/workflows/fleet-gallery-24-view-test.yml
+      - londra-private/resources/views/atelier/components.php
+      - londra-private/resources/views/atelier/fleet-photo-gallery.php
+      - londra-private/app/Http/Controllers/PublicPageController.php
+      - londra-private/resources/css/site.css
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,6 +33,7 @@ jobs:
           php -l londra-private/app/Filament/Pages/FleetPhotoGalleries.php
           php -l londra-private/resources/views/atelier/fleet-photo-gallery.php
           php -l londra-private/app/Http/Controllers/PublicPageController.php
+          php -l londra-private/resources/views/atelier/components.php
           python - <<'PY'
           import json
           from pathlib import Path
