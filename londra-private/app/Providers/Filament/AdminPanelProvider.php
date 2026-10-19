@@ -35,7 +35,7 @@ final class AdminPanelProvider extends PanelProvider
             ->defaultThemeMode(ThemeMode::Dark)->databaseTransactions()->unsavedChangesAlerts()->broadcasting(false)
             ->multiFactorAuthentication([AppAuthentication::make()->recoverable()->brandName('Londra Transfers')], isRequired: false)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->pages([Dashboard::class, PortalSettings::class, Readiness::class, \App\Filament\Pages\InterfaceCopy::class, \App\Filament\Pages\PrivacySettings::class, \App\Filament\Pages\ReleaseUpdate::class, \App\Filament\Pages\LaunchSettings::class, \App\Filament\Pages\SmtpSettings::class, \App\Filament\Pages\ManagementCoverage::class])->widgets([InquiryStats::class, InquiryChart::class])
+            ->pages([Dashboard::class, PortalSettings::class, Readiness::class, \App\Filament\Pages\InterfaceCopy::class, \App\Filament\Pages\PrivacySettings::class, \App\Filament\Pages\ReleaseUpdate::class, \App\Filament\Pages\LaunchSettings::class, \App\Filament\Pages\SmtpSettings::class, \App\Filament\Pages\ManagementCoverage::class, \App\Filament\Pages\FleetPhotoGalleries::class])->widgets([InquiryStats::class, InquiryChart::class])
             ->middleware([EncryptCookies::class,AddQueuedCookiesToResponse::class,StartSession::class,AuthenticateSession::class,ShareErrorsFromSession::class,ValidateCsrfToken::class,SubstituteBindings::class,DisableBladeIconComponents::class,DispatchServingFilamentEvent::class,EnglishAdmin::class])
             ->authMiddleware([Authenticate::class]);
     }
