@@ -39,6 +39,16 @@ final class PublicPageController
         $v['schema']=SiteViewModel::schema($v);
         $v['css_url']=app(\Illuminate\Foundation\Vite::class)->asset('resources/css/app.css');
         $v['js_url']=app(\Illuminate\Foundation\Vite::class)->asset('resources/js/app.js');
+        if ($translation->page->kind === 'vehicle') {
+            $matched = null;
+            foreach ($vehicles as $candidate) {
+                if (($candidate['page_key'] ?? '') === $translation->page->key) {
+                    $matched = $candidate; break;
+                }
+            }
+            $rights = Setting::find('fleet-photo-galleries')?->value ?? [];
+            $v['fleet_gallery'] = $matched ? \App\Services\FleetPhotoGallery::visible((string)$matched['code'], (array)$rights, $v['media'], $locale) : [];
+        }
         return view('site',['v'=>$v]);
     }
 }
