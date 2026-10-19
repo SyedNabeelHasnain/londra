@@ -39,6 +39,8 @@ jobs:
           assert all(r['commercial_rights'].startswith('unverified') for l in data['models'].values() for r in l)
           print('FLEET_SOURCE_REGISTER_PASSED',sum(map(len,data['models'].values())),'appearance-only selections; public rights not inferred')
           PY
+      - name: Prepare Laravel writable bootstrap and storage directories
+        run: python3 tools/package.py --prepare
       - name: Install isolated PHP test dependencies
         working-directory: londra-private
         run: composer install --no-interaction --prefer-dist --no-progress
