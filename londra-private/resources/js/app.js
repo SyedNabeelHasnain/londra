@@ -137,6 +137,62 @@
         const title = dialog.querySelector('h2');
         if (title) title.textContent = `${ui.gallery_title}${vehicle ? ' · ' + vehicle : ''}`;
     });
+
+    // Individually cleared, multi-angle galleries on each Mercedes vehicle detail page.
+    const angleDialog = document.querySelector('[data-fleet-angles-dialog]');
+    const angleTriggers = Array.from(document.querySelectorAll('[data-angle-open]'));
+    if (angleDialog && angleTriggers.length && typeof angleDialog.showModal === 'function') {
+        const large = angleDialog.querySelector('[data-angle-large]');
+        const caption = angleDialog.querySelector('[data-angle-caption]');
+        const position = angleDialog.querySelector('[data-angle-position]');
+        let active = 0;
+        let opener = null;
+        const show = index => {
+            active = (index + angleTriggers.length) % angleTriggers.length;
+            const thumb = angleTriggers[active].querySelector('img');
+            if (!thumb || !large) return;
+            large.src = thumb.currentSrc || thumb.src;
+            const responsive = thumb.getAttribute('srcset');
+            if (responsive) {
+                large.setAttribute('srcset', responsive);
+                large.setAttribute('sizes', '(min-width: 1300px) 1120px, calc(100vw - 55px)');
+            } else {
+                large.removeAttribute('srcset');
+                large.removeAttribute('sizes');
+            }
+            large.alt = thumb.alt || '';
+            if (caption) caption.textContent = thumb.alt || '';
+            if (position) position.textContent = (active + 1) + ' / ' + angleTriggers.length;
+        };
+        angleTriggers.forEach((button, index) => button.addEventListener('click', () => {
+            opener = button;
+            show(index);
+            document.querySelectorAll('dialog[open]').forEach(other => other.close());
+            angleDialog.showModal();
+            document.body.classList.add('is-locked');
+            angleDialog.querySelector('[data-angle-close]')?.focus({preventScroll:true});
+        }));
+        angleDialog.querySelector('[data-angle-close]')?.addEventListener('click', () => angleDialog.close());
+        angleDialog.querySelector('[data-angle-prev]')?.addEventListener('click', () => show(active - 1));
+        angleDialog.querySelector('[data-angle-next]')?.addEventListener('click', () => show(active + 1));
+        angleDialog.addEventListener('keydown', event => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            show(active + (event.key === 'ArrowLeft' ? -1 : 1));
+        });
+        angleDialog.addEventListener('click', event => {
+            if (event.target !== angleDialog) return;
+            const rect = angleDialog.getBoundingClientRect();
+            if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) angleDialog.close();
+        });
+        angleDialog.addEventListener('close', () => {
+            large?.removeAttribute('srcset');
+            large?.removeAttribute('src');
+            document.body.classList.remove('is-locked');
+            if (opener?.isConnected) opener.focus({preventScroll:true});
+        });
+    }
+
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver(entries => {
