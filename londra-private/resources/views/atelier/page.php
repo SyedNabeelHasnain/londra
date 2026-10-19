@@ -43,6 +43,7 @@ $breadcrumbs = \App\Presentation\SiteViewModel::breadcrumbs($v);
 <?php if($isPartnership): ?><a class="button" href="<?= $e($link('contact')) ?>"><?= $e($u['contact']) ?><?= $arrow() ?></a><?php else: ?><?= $cta($u['enquire'], 'button', $serviceContext) ?><?php endif; ?>
 </div></div><?php if($heroImage): ?><figure class="page-hero-photo media-frame"><?= $heroImage ?></figure><?php endif; ?></section>
 <?php endif; ?>
+<?php if($vehicle && !empty($v['fleet_gallery'])): require __DIR__.'/fleet-photo-gallery.php'; endif; ?>
 <?php if(in_array($kind, ['service','vehicle','airport','tour','editorial'], true)): ?>
 <?php $luggage = $vehicle ? $luggageFacts($vehicle) : ''; $hasDetail = !empty($p['highlights']) || $paragraphs || !empty($p['detail_heading']) || $luggage; ?>
 <section class="detail-section section wrap <?= $hasDetail ? '' : 'is-text-only' ?>" id="overview"><?php if($hasDetail): ?><article class="detail-prose">
