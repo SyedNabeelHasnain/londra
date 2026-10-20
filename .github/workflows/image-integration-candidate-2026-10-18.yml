@@ -182,3 +182,6 @@ jobs:
           if-no-files-found: warn
           compression-level: 5
           retention-days: 14
+
+# Revalidation of 24-vehicle-photo gallery implementation on latest isolated branch.
+# Source photographs remain unpublished pending commercial permission.
