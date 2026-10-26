@@ -1,0 +1,215 @@
+{
+  "title": "Londra Transfers Fleet Photo Review 01 recovered images",
+  "source": "Londra_Fleet_Photo_Shortlist_01.html",
+  "recovered": "2026-10-26",
+  "items": [
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-e-class-exterior-front.jpg",
+      "review_id": "E01",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-e-class-exterior-side-profile.jpg",
+      "review_id": "E02",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-e-class-interior-rear-cabin.jpg",
+      "review_id": "E03",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-e-class-interior-panoramic-roof.jpg",
+      "review_id": "E04",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-e-class-interior-guest-experience.jpg",
+      "review_id": "E05",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "londra-private/storage/app/brand-sources/fleet-review/alternatives/londra-transfers-mercedes-e-class-exterior-wheel-detail.jpg",
+      "review_id": "E06",
+      "status": "Alternative required",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "londra-private/storage/app/brand-sources/fleet-review/alternatives/londra-transfers-mercedes-e-class-exterior-country-house.jpg",
+      "review_id": "E07",
+      "status": "Alternative required",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-s-class-exterior-front-three-quarter.jpg",
+      "review_id": "S01",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-s-class-exterior-rear-three-quarter.jpg",
+      "review_id": "S02",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-s-class-chauffeur-country-house-arrival.jpg",
+      "review_id": "S03",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-s-class-interior-rear-seating.jpg",
+      "review_id": "S04",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-s-class-interior-door-and-seat-controls.jpg",
+      "review_id": "S05",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-s-class-interior-rear-armrest.jpg",
+      "review_id": "S06",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-s-class-interior-cockpit-with-driver.jpg",
+      "review_id": "S07",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-v-class-exterior-front-three-quarter.jpg",
+      "review_id": "V01",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-v-class-exterior-country-house-driveway.jpg",
+      "review_id": "V02",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-v-class-exterior-front.jpg",
+      "review_id": "V03",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-v-class-interior-passenger-entry.jpg",
+      "review_id": "V04",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-v-class-interior-facing-seats.jpg",
+      "review_id": "V05",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-v-class-interior-rear-seating.jpg",
+      "review_id": "V06",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-v-class-chauffeur-guest-arrival.jpg",
+      "review_id": "V07",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-vito-exterior-front-three-quarter.jpg",
+      "review_id": "T01",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-vito-exterior-side-profile.jpg",
+      "review_id": "T02",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-vito-interior-passenger-entry.jpg",
+      "review_id": "T03",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-vito-interior-dashboard.jpg",
+      "review_id": "T04",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    },
+    {
+      "path": "public_html/assets/photos/fleet/londra-transfers-mercedes-vito-interior-rear-access.jpg",
+      "review_id": "T05",
+      "status": "Approve appearance",
+      "format": "JPEG",
+      "source": "Embedded image recovered from original review HTML",
+      "rights": "Commercial publication rights have not been verified"
+    }
+  ]
+}
