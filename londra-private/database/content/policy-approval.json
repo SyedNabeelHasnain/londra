@@ -1,0 +1,31 @@
+{
+    "id": "2026-11-05.3",
+    "approved_on": "2026-11-05",
+    "pages": {
+        "terms": {
+            "en": "0c0752f64111d088d83fcfa5c5a7738b611bfab69459fdd0235eaa19877102bc",
+            "it": "4bdffcf0660036a566a379c800e39e6d6af5feb96960bf67d1dd1ccce693c303",
+            "es": "e9b47d64f2a898e451b048566031cd15a2920c8bb4831c99f3bbcfedb0a02bc6"
+        },
+        "privacy": {
+            "en": "aa387674b91632193180df6a50caf639bf42123755fd98ee03f82ac28188487c",
+            "it": "ab9f2dabf4fc807755e6cf4d9deca8c753f4b52a5f043d647c224c847a5d2072",
+            "es": "83cc9988a1c90fff0bebc7fc386f68d8db4fbe27228515dfcfcb2eb425fa483e"
+        },
+        "refund": {
+            "en": "06c79aaea2aa17f3db12839af2e5c6c68ac37094ffd9ab8e0a78c00b508a2b8c",
+            "it": "0a0053fcbe3c3084ba43bc7ce392e97c6fa6a34d5af4097da23a83ac1cfb532f",
+            "es": "4fdd403e7c5e3db2d6694a0725bbc83cc2cfab49baaf5abc4378ddcb60b93f95"
+        },
+        "cookies": {
+            "en": "d7cdd9c55747c1c1ce4ef24c797fc77b8c6e681aea8d80f301a0726b4c0b6569",
+            "it": "131cf91426445fa00dfb0e6c296d8d240abe878c66dc1abe84febae3303f2a3a",
+            "es": "d167d0860b5cd2121bc730adf72c093756d2f0e929bb68fb90aeb718fccb62ad"
+        },
+        "accessibility": {
+            "en": "daf5c52050acd2afbe06060786b6584ee9d70911c18dd1a10ad35ac615372d0c",
+            "it": "90b44e22745dee0e44c2508e623afe89ad22a746b8ca89a4f59a2f385947fc67",
+            "es": "3109f283c69f94356da1c5778c3cf8610bdf59ff175529ba7924dfb0d2ec954c"
+        }
+    }
+}

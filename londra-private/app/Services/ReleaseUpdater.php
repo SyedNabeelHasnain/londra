@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 final class ReleaseUpdater
 {
-    public const VERSION = '2026-11-05.2';
+    public const VERSION = '2026-11-05.3';
     public function run(): void
     {
         Cache::lock('londra-release-update', 300)->block(2, function (): void {
@@ -37,6 +37,7 @@ final class ReleaseUpdater
                     Setting::create(['key' => 'release-'.self::VERSION, 'value' => ['applied_at' => now()->toIso8601String(), 'applied_by' => auth()->id()]]);
                 }, 3);
             }
+            DB::transaction(fn() => app(PolicyApproval::class)->apply(), 3);
             $operation = Setting::find('launch-operations')?->value ?? [];
             unset($operation['preview']);
             Setting::updateOrCreate(['key' => 'launch-operations'], ['value' => $operation]);

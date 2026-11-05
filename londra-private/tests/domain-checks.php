@@ -4,10 +4,11 @@ require __DIR__.'/../app/Domain/LocalePolicy.php';
 require __DIR__.'/../app/Domain/ReleasePolicy.php';
 require __DIR__.'/../app/Domain/CsvSafety.php';
 require __DIR__.'/../app/Domain/InquiryStatus.php';
+require __DIR__.'/../app/Domain/PolicyFingerprint.php';
 require __DIR__.'/../app/Services/ReleaseUpdater.php';
 require __DIR__.'/../app/Presentation/Html.php';
 require __DIR__.'/../app/Presentation/SiteViewModel.php';
-use App\Domain\{LocalePolicy,ReleasePolicy,CsvSafety,InquiryStatus};
+use App\Domain\{LocalePolicy,ReleasePolicy,CsvSafety,InquiryStatus,PolicyFingerprint};
 use App\Presentation\{Html,SiteViewModel};
 $checks=[];
 $check=static function(string $name,bool $passed) use(&$checks):void{$checks[]=['check'=>$name,'passed'=>$passed];};
@@ -47,6 +48,10 @@ foreach(['en','it','es']as$locale){
  }
 }
 $check('99 real translated public pages',$publicCount===99);
+$policyPages=array_column(array_filter($pages,fn($page)=>$page['kind']==='policy'),null,'key');$approval=$read('database/content/policy-approval.json');
+$check('Policy approval names only policy pages',array_diff(array_keys($approval['pages']),array_keys($policyPages))===[]&&is_string($approval['id'])&&preg_match('/^\d{4}-\d{2}-\d{2}$/',$approval['approved_on'])===1);
+foreach($approval['pages'] as$key=>$fingerprints){foreach(['en','it','es']as$locale){$check('Approved policy wording unchanged '.$locale.' '.$key,isset($fingerprints[$locale],$policyPages[$key])&&hash_equals($fingerprints[$locale],PolicyFingerprint::of($policyPages[$key]['translations'][$locale])));}}
+foreach($read('database/content/policies.json')['records'] as$record){foreach($record['translations'] as$locale=>$translation){foreach(['slug','title','intro','body','seo_title','meta_description']as$field){$check('Policy import matches page content '.$locale.' '.$record['key'].' '.$field,($translation[$field]??null)===($policyPages[$record['key']]['translations'][$locale][$field]??false));}}}
 $v=SiteViewModel::build($pages,$vehicles,$media,$read('lang/en/ui.json'),'en','home',true);
 $v['page']['seo_title']='</script><script>alert(1)</script>';$json=SiteViewModel::schema($v);
 $check('Structured data script closure escaped',!str_contains($json,'</script>'));

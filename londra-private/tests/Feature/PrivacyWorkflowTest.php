@@ -134,10 +134,11 @@ final class PrivacyWorkflowTest extends TestCase
         $this->assertDatabaseCount('users', 1); $this->assertSame($user->id, User::first()->id); $this->assertNotNull($inquiry->fresh());
         $this->assertSame($encrypted, DB::table('inquiries')->value('email')); $this->assertSame($originalKey, config('app.key')); $this->assertSame($smtp, config('mail.mailers.smtp'));
         $privacy = Page::with('translations')->where('key', 'privacy')->firstOrFail();
-        $this->assertStringContainsString('14856485', $privacy->translation('en')->body); $this->assertFalse($privacy->published);
+        $this->assertStringContainsString('14856485', $privacy->translation('en')->body); $this->assertTrue($privacy->published); $this->assertNotNull($privacy->approved_at);
         $privacy->translation('en')->update(['intro' => 'Synthetic owner edit.']);
         app(ReleaseUpdater::class)->run();
         $this->assertSame('Synthetic owner edit.', $privacy->fresh()->translations()->where('locale', 'en')->first()->intro);
+        $this->assertFalse($privacy->fresh()->published); $this->assertNull($privacy->fresh()->approved_at);
     }
     public function test_three_public_privacy_pages_and_admin_authentication(): void
     {

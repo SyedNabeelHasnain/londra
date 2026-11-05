@@ -43,7 +43,7 @@
 </div>
 </div>
 <div class="container footer-legal">
-<p class="footer-company">Londra Transfers Limited · {{ $u['company_number'] }}: 14856485<br>{{ $u['registered_office'] }}: Regus, Cowork Desk 130, 6 to 9 Stockley Park, Uxbridge, UB11 1FW, England</p>
+<p class="footer-company">Londra Transfers Limited · {{ $u['company_number'] }}: 14856485<br>{{ $u['registered_office'] }}: Regus, Cowork Desk 130, 6-9 The Square, Stockley Park, Uxbridge, UB11 1FW, England</p>
 @if($footerLegal)
 <nav class="footer-policies" aria-label="{{ $u['navigation_policies'] }}"><ul>
 @foreach($footerLegal as $item)
