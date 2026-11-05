@@ -4,10 +4,12 @@ namespace App\Services;
 use App\Models\{MediaAsset,Page,Setting};
 final class PublicContentUpdater
 {
+    /** Internal notes written by earlier seed data. Owner-entered notes are never matched. */
+    private const SEEDED_PROVENANCE = ['Illustrative brand image; original source preserved in private brand assets.'];
     public function run(): void
     {
         $previous = [];
-        foreach (['previous-public-copy.json','previous-public-copy-2026-10-12.2.json','previous-public-copy-2026-10-13.1.json','previous-public-copy-2026-10-13.2.json','previous-public-copy-2026-10-13.3.json'] as $file) {
+        foreach (['previous-public-copy.json','previous-public-copy-2026-10-12.2.json','previous-public-copy-2026-10-13.1.json','previous-public-copy-2026-10-13.2.json','previous-public-copy-2026-10-13.3.json','previous-public-copy-2026-10-13.5.json'] as $file) {
             $previous[] = json_decode((string) file_get_contents(database_path('content/'.$file)), true, 512, JSON_THROW_ON_ERROR);
         }
         $current = json_decode((string) file_get_contents(database_path('content/pages.json')), true, 512, JSON_THROW_ON_ERROR);
@@ -39,6 +41,9 @@ final class PublicContentUpdater
                 }
             }
         }
+        $seededReferences = array_values(array_unique(array_filter(array_merge(...array_map(static fn($snapshot) => array_column($snapshot['pages'], 'source_reference'), $previous)), 'is_string')));
+        if ($seededReferences) { Page::query()->whereIn('source_reference', $seededReferences)->update(['source_reference' => null]); }
+        MediaAsset::query()->whereNull('upload_path')->whereIn('provenance', self::SEEDED_PROVENANCE)->update(['provenance' => null]);
         $alts = json_decode((string) file_get_contents(database_path('content/media-alt.json')), true, 512, JSON_THROW_ON_ERROR);
         foreach ($alts as $key => $translations) {
             $media = MediaAsset::where('key', $key)->lockForUpdate()->first();

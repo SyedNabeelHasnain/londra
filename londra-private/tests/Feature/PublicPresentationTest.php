@@ -272,6 +272,37 @@ final class PublicPresentationTest extends TestCase
         $later='A later individually maintained sidebar navigation label';$value=Setting::findOrFail('interface-copy')->value;$value['en']['home']=$later;Setting::findOrFail('interface-copy')->update(['value'=>$value]);app(ReleaseUpdater::class)->run();
         $this->assertSame($later,app(\App\Services\PublicCopy::class)->forLocale('en')['home']);$this->assertSame('An individually maintained introduction for the sidebar upgrade test.',$translation->fresh()->intro);
     }
+    public function test_redesign_upgrade_from_13_5_replaces_previous_copy_clears_seeded_notes_and_preserves_owner_edits(): void
+    {
+        foreach(['2026-10-12.1','2026-10-12.2','2026-10-13.1','2026-10-13.2','2026-10-13.3','2026-10-13.5'] as $version){Setting::create(['key'=>'release-'.$version,'value'=>['applied_at'=>now()->toIso8601String()]]);}
+        $previous=json_decode(file_get_contents(database_path('content/previous-public-copy-2026-10-13.5.json')),true,512,JSON_THROW_ON_ERROR);
+        $old=array_column($previous['pages'],null,'key');$latest=array_column(json_decode(file_get_contents(database_path('content/pages.json')),true,512,JSON_THROW_ON_ERROR),null,'key');
+        $fields=['intro','body','detail_heading','image_alt'];
+        foreach(['home','airport-transfers','heathrow','about'] as $key){
+            $page=Page::with('translations')->where('key',$key)->firstOrFail();$page->update(['source_reference'=>$old[$key]['source_reference']]);
+            foreach($page->translations as $translation){$translation->update(array_intersect_key($old[$key]['translations'][$translation->locale],array_flip($fields)));}
+        }
+        Page::where('key','partners')->firstOrFail()->update(['source_reference'=>'Owner approval record kept by the administrator']);
+        Page::where('key','vito')->firstOrFail()->translation('it')->update(['intro'=>'Un’introduzione approvata dal proprietario.']);
+        foreach(MediaAsset::all() as $asset){$asset->update(['provenance'=>'Illustrative brand image; original source preserved in private brand assets.','alt_en'=>$previous['media_alt'][$asset->key]['en']]);}
+        MediaAsset::where('key','westminster')->firstOrFail()->update(['provenance'=>'Licensed photograph, owner record 42','alt_it'=>'Testo alternativo scritto dal proprietario.']);
+        $saved=$previous['ui'];$saved['es']['enquire']='Reserve su consulta privada';Setting::create(['key'=>'interface-copy','value'=>$saved]);
+        app(ReleaseUpdater::class)->run();
+        $this->assertNotNull(Setting::find('release-'.ReleaseUpdater::VERSION));
+        foreach(['home','airport-transfers','heathrow','about'] as $key){
+            $page=Page::with('translations')->where('key',$key)->firstOrFail();$this->assertNull($page->source_reference,$key);
+            foreach(['en','it','es'] as $locale){foreach($fields as $field){$this->assertJsonContentSame($latest[$key]['translations'][$locale][$field]??null,$page->translation($locale)->getAttribute($field),$key.' '.$locale.' '.$field);}}
+        }
+        $this->assertSame('Owner approval record kept by the administrator',Page::where('key','partners')->firstOrFail()->source_reference);
+        $this->assertSame('Un’introduzione approvata dal proprietario.',Page::where('key','vito')->firstOrFail()->translation('it')->intro);
+        $alts=json_decode(file_get_contents(database_path('content/media-alt.json')),true,512,JSON_THROW_ON_ERROR);
+        foreach(MediaAsset::where('key','!=','westminster')->get() as $asset){$this->assertNull($asset->provenance,$asset->key);$this->assertSame($alts[$asset->key]['en'],$asset->alt_en,$asset->key);$this->assertDoesNotMatchRegularExpression('/illustrat/iu',$asset->alt_en.' '.$asset->alt_it.' '.$asset->alt_es);}
+        $westminster=MediaAsset::where('key','westminster')->firstOrFail();$this->assertSame('Licensed photograph, owner record 42',$westminster->provenance);$this->assertSame('Testo alternativo scritto dal proprietario.',$westminster->alt_it);
+        $this->assertSame('Reserve su consulta privada',app(\App\Services\PublicCopy::class)->forLocale('es')['enquire']);
+        $defaults=json_decode(file_get_contents(lang_path('en/ui.json')),true,512,JSON_THROW_ON_ERROR);$this->assertSame($defaults['enquire'],app(\App\Services\PublicCopy::class)->forLocale('en')['enquire']);
+        foreach(['contact_team','faq','offline_contact_note'] as $retired){$this->assertArrayNotHasKey($retired,app(\App\Services\PublicCopy::class)->forLocale('en'));}
+        foreach(Page::published()->with('translations')->get() as $page){foreach($page->translations as $translation){$this->assertDoesNotMatchRegularExpression('/illustrat|DB-IP|IP Geolocation/iu',$this->get($translation->url())->assertOk()->getContent(),$translation->url());}}
+    }
     public function test_release_readiness_requires_the_current_content_update_not_only_the_previous_release_marker(): void
     {
         Setting::create(['key'=>'release-2026-10-13.3','value'=>['applied_at'=>now()->toIso8601String()]]);

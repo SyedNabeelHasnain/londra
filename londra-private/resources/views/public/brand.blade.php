@@ -1,0 +1,2 @@
+@use('App\Presentation\Html')
+<a href="{{ $links['home'] }}" class="brand {{ $brandClass ?? '' }}"><span class="brand-emblem" aria-hidden="true"><img class="on-dark" src="{{ Html::asset($v, 'assets/artwork/logo-master-gold.png') }}" width="1224" height="306" alt=""><img class="on-light" src="{{ Html::asset($v, 'assets/artwork/logo-master-black.png') }}" width="1224" height="306" alt=""></span><span class="brand-wordmark"><span class="brand-name">Londra</span> <span class="brand-sub">Transfers</span></span></a>

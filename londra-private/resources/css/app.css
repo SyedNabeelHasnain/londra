@@ -1,7 +1,1 @@
-@layer theme, base, components, utilities;
-@import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities);
 @import './site.css';
-@source '../views/**/*.blade.php';
-@source '../views/atelier/**/*.php';
-@source '../js/**/*.js';

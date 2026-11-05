@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\Support\PortalFixtures;
 use Tests\TestCase;
-final class SidebarPresentationTest extends TestCase
+final class NavigationPresentationTest extends TestCase
 {
     use RefreshDatabase,PortalFixtures;
     private object $transport;
@@ -57,32 +57,31 @@ final class SidebarPresentationTest extends TestCase
     {
         return (string)parse_url($page->translation($locale)->url(),PHP_URL_PATH);
     }
-    private function assertSidebars(\DOMXPath $xpath,string $locale,string $currentPath): void
+    private const NAVIGATION='//dialog[@id="navigation-dialog"]//nav[contains(concat(" ",normalize-space(@class)," ")," site-navigation ")]';
+    private function assertNavigation(\DOMXPath $xpath,string $locale,string $currentPath): void
     {
-        $shell=$xpath->query('//*[contains(concat(" ",normalize-space(@class)," ")," public-shell ")]');$this->assertSame(1,$shell->length);
-        foreach(['left','right'] as $side){
-            $panes=$xpath->query('//*[@id="'.$side.'-sidebar"]');$this->assertSame(1,$panes->length);$pane=$panes->item(0);
-            $this->assertStringContainsString('sidebar-'.$side,$pane->getAttribute('class'));$this->assertSame($side.'-sidebar-title',$pane->getAttribute('aria-labelledby'));
-            $label=$xpath->query('//*[@id="'.$side.'-sidebar-title"]');$this->assertSame(1,$label->length);$this->assertNotSame('',trim($label->item(0)->textContent));
-            $this->assertSame(0,$xpath->query('ancestor::main',$pane)->length);
-        }
-        $left=$xpath->query('//*[@id="left-sidebar"]')->item(0);$expected=[];$activeVehiclePages=array_map('intval',Vehicle::where('active',true)->pluck('page_id')->all());
+        foreach(['left-sidebar','right-sidebar'] as $retired){$this->assertSame(0,$xpath->query('//*[@id="'.$retired.'"]')->length);}
+        $this->assertSame(0,$xpath->query('//*[contains(concat(" ",normalize-space(@class)," ")," public-shell ")]')->length);
+        $navs=$xpath->query(self::NAVIGATION);$this->assertSame(1,$navs->length);$navigation=$navs->item(0);$this->assertNotSame('',trim($navigation->getAttribute('aria-label')));
+        $expected=[];$activeVehiclePages=array_map('intval',Vehicle::where('active',true)->pluck('page_id')->all());
         foreach(Page::published()->with('translations')->get() as $page){if($page->translation($locale)?->ready&&($page->kind!=='vehicle'||in_array($page->id,$activeVehiclePages,true))){$expected[]=$this->path($page,$locale);}}
         $actual=[];
-        foreach($xpath->query('.//a[@href]',$left) as $anchor){$href=$anchor->getAttribute('href');$this->assertNotSame('',trim($anchor->textContent));$this->assertContains($href,$expected);$actual[]=$href;}
+        foreach($xpath->query('.//a[@href]',$navigation) as $anchor){$href=$anchor->getAttribute('href');$this->assertNotSame('',trim($anchor->textContent));$this->assertContains($href,$expected);$actual[]=$href;}
         $this->assertEqualsCanonicalizing($expected,array_unique($actual));$this->assertCount(count($actual),array_unique($actual));
-        $copy=app(PublicCopy::class)->forLocale($locale);$home=$xpath->query('.//a[@href="/'.$locale.'"]',$left);$this->assertSame(1,$home->length);$this->assertSame($copy['home'],trim($home->item(0)->textContent));
-        $policy=$xpath->query('.//details[@data-navigation-group="policy"]',$left);
+        $copy=app(PublicCopy::class)->forLocale($locale);$home=$xpath->query('.//a[@href="/'.$locale.'"]',$navigation);$this->assertSame(1,$home->length);$this->assertSame($copy['home'],trim($home->item(0)->textContent));
+        $policy=$xpath->query('.//details[@data-navigation-group="policy"]',$navigation);
         if($policy->length){$summary=$xpath->query('./summary/span',$policy->item(0));$this->assertSame(1,$summary->length);$this->assertSame($copy['navigation_policies'],trim($summary->item(0)->textContent));}
-        $current=$xpath->query('.//a[@aria-current="page"]',$left);$this->assertSame(1,$current->length);$this->assertSame($currentPath,$current->item(0)->getAttribute('href'));
-        foreach($xpath->query('.//details | .//section',$left) as $group){$this->assertGreaterThan(0,$xpath->query('.//a[@href]',$group)->length);}
-        $this->assertSame(0,$xpath->query('.//a[descendant::a]',$left)->length);
-        $right=$xpath->query('//*[@id="right-sidebar"]')->item(0);$this->assertSame(0,$xpath->query('.//form',$right)->length);
-        $actions=$xpath->query('.//a[@data-open-enquiry]',$right);$this->assertGreaterThan(0,$actions->length);
-        foreach($actions as $action){$this->assertContains($action->getAttribute('href'),$expected);$this->assertNotSame('',trim($action->textContent));}
-        $mobile=$xpath->query('//*[contains(concat(" ",normalize-space(@class)," ")," sidebar-mobile-controls ")]');$this->assertSame(1,$mobile->length);
-        foreach(['navigation','enquiry'] as $action){$links=$xpath->query('.//a[@data-open-'.$action.']',$mobile->item(0));$this->assertSame(1,$links->length);$this->assertContains($links->item(0)->getAttribute('href'),$expected);$this->assertNotSame('',trim($links->item(0)->textContent));}
-        foreach(['navigation-dialog'=>'drawer-left','enquiry-dialog'=>'drawer-right'] as $id=>$class){$dialogs=$xpath->query('//dialog[@id="'.$id.'"]');$this->assertSame(1,$dialogs->length);$this->assertStringContainsString($class,$dialogs->item(0)->getAttribute('class'));}
+        $current=$xpath->query('.//a[@aria-current="page"]',$navigation);$this->assertSame(1,$current->length);$this->assertSame($currentPath,$current->item(0)->getAttribute('href'));
+        foreach($xpath->query('.//details',$navigation) as $group){$this->assertGreaterThan(0,$xpath->query('.//a[@href]',$group)->length);}
+        $this->assertSame(0,$xpath->query('//a[descendant::a]')->length);
+        $headers=$xpath->query('//header[contains(concat(" ",normalize-space(@class)," ")," site-header ")]');$this->assertSame(1,$headers->length);$header=$headers->item(0);
+        $this->assertSame(0,$xpath->query('.//form',$header)->length);
+        foreach(['navigation','enquiry'] as $action){$links=$xpath->query('.//a[@data-open-'.$action.']',$header);$this->assertSame(1,$links->length);$this->assertContains($links->item(0)->getAttribute('href'),$expected);$this->assertNotSame('',trim($links->item(0)->getAttribute('aria-label').$links->item(0)->textContent));}
+        foreach($xpath->query('.//nav[contains(@class,"primary-nav")]//a[@href]',$header) as $anchor){$this->assertContains($anchor->getAttribute('href'),$expected);$this->assertNotSame('',trim($anchor->textContent));}
+        $bars=$xpath->query('//*[contains(concat(" ",normalize-space(@class)," ")," mobile-actionbar ")]');$this->assertSame(1,$bars->length);
+        $this->assertGreaterThan(0,$xpath->query('.//a[starts-with(@href,"tel:")]',$bars->item(0))->length);
+        $enquiry=$xpath->query('.//a[@data-open-enquiry]',$bars->item(0));$this->assertSame(1,$enquiry->length);$this->assertContains($enquiry->item(0)->getAttribute('href'),$expected);
+        foreach(['navigation-dialog'=>'drawer-left','enquiry-dialog'=>'drawer-right'] as $id=>$class){$dialogs=$xpath->query('//dialog[@id="'.$id.'"]');$this->assertSame(1,$dialogs->length);$this->assertStringContainsString($class,$dialogs->item(0)->getAttribute('class'));$this->assertNotSame('',$dialogs->item(0)->getAttribute('aria-labelledby'));}
     }
     private function customPage(string $kind,string $key): Page
     {
@@ -140,93 +139,97 @@ final class SidebarPresentationTest extends TestCase
         }
         foreach(['inquiries','data_requests','notification_deliveries','privacy_deliveries','jobs'] as $table){$this->assertDatabaseCount($table,0);}$this->assertCount(0,$this->transport->sent);
     }
-    public function test_every_published_language_page_has_complete_current_sidebar_navigation_and_real_action_fallbacks(): void
+    public function test_every_published_language_page_has_complete_current_navigation_and_real_action_fallbacks(): void
     {
         foreach(Page::published()->with('translations')->get() as $page){
             foreach(['en','it','es'] as $locale){
-                $response=$this->get($page->translation($locale)->url())->assertOk();$xpath=$this->xpath($response->getContent());$this->assertSidebars($xpath,$locale,$this->path($page,$locale));
+                $response=$this->get($page->translation($locale)->url())->assertOk();$xpath=$this->xpath($response->getContent());$this->assertNavigation($xpath,$locale,$this->path($page,$locale));
                 $this->assertSame($locale,$xpath->query('//html')->item(0)->getAttribute('lang'));$this->assertSame(1,$xpath->query('//h1')->length);
                 $this->assertDistinctIdsAndSubmissions($xpath,in_array($page->key,['contact','enquiry','privacy-request'],true)?2:1);
                 $this->assertDoesNotMatchRegularExpression('/development preview|design preview|lorem ipsum|\bdummy\b|\btemplate\b|\bplaceholder\b|frontend|backend|anteprima di sviluppo|vista previa de desarrollo/iu',$xpath->query('//body')->item(0)->textContent);
             }
         }
     }
-    public function test_sidebar_catalogue_includes_custom_published_records_and_tracks_locale_edits_and_withdrawal(): void
+    public function test_navigation_catalogue_includes_custom_published_records_and_tracks_locale_edits_and_withdrawal(): void
     {
-        $custom=[];foreach(['service','vehicle','airport','tour','editorial','faq','directory','policy'] as $kind){$custom[$kind]=$this->customPage($kind,'synthetic-sidebar-'.$kind);}
+        $custom=[];foreach(['service','vehicle','airport','tour','editorial','faq','directory','policy'] as $kind){$custom[$kind]=$this->customPage($kind,'synthetic-navigation-'.$kind);}
         foreach(['en','it','es'] as $locale){
-            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertSidebars($xpath,$locale,'/'.$locale);
-            foreach($custom as $page){$links=$xpath->query('//*[@id="left-sidebar"]//a[@href="'.$this->path($page,$locale).'"]');$this->assertSame(1,$links->length);$this->assertSame($page->translation($locale)->title,trim($links->item(0)->textContent));}
+            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertNavigation($xpath,$locale,'/'.$locale);
+            foreach($custom as $page){$links=$xpath->query(self::NAVIGATION.'//a[@href="'.$this->path($page,$locale).'"]');$this->assertSame(1,$links->length);$this->assertSame($page->translation($locale)->title,trim($links->item(0)->textContent));}
         }
         $tour=$custom['tour'];$spanish=$tour->translation('es');$oldPath=$this->path($tour,'es');$spanish->update(['slug'=>'recorrido-sintetico-actualizado','title'=>'Recorrido sintético actualizado']);
         $about=Page::where('key','about')->firstOrFail();$about->translation('it')->update(['slug'=>'azienda-sintetica-aggiornata','title'=>'Titolo aziendale aggiornato']);
         foreach(['en','it','es'] as $locale){
-            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertSidebars($xpath,$locale,'/'.$locale);$current=$tour->fresh()->translation($locale);
-            $links=$xpath->query('//*[@id="left-sidebar"]//a[@href="'.(string)parse_url($current->url(),PHP_URL_PATH).'"]');$this->assertSame(1,$links->length);$this->assertSame($current->title,trim($links->item(0)->textContent));
-            if($locale==='es'){$this->assertSame(0,$xpath->query('//*[@id="left-sidebar"]//a[@href="'.$oldPath.'"]')->length);}
+            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertNavigation($xpath,$locale,'/'.$locale);$current=$tour->fresh()->translation($locale);
+            $links=$xpath->query(self::NAVIGATION.'//a[@href="'.(string)parse_url($current->url(),PHP_URL_PATH).'"]');$this->assertSame(1,$links->length);$this->assertSame($current->title,trim($links->item(0)->textContent));
+            if($locale==='es'){$this->assertSame(0,$xpath->query(self::NAVIGATION.'//a[@href="'.$oldPath.'"]')->length);}
         }
         $this->get($oldPath)->assertStatus(301)->assertRedirect($spanish->url());
         $custom['service']->update(['published'=>false]);$about->update(['published'=>false]);
         $editorial=$custom['editorial'];DB::table('page_translations')->where('page_id',$editorial->id)->where('locale','it')->update(['ready'=>false]);
         foreach(['en','it','es'] as $locale){
-            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertSidebars($xpath,$locale,'/'.$locale);
-            foreach([$custom['service'],$about] as $page){$this->assertSame(0,$xpath->query('//*[@id="left-sidebar"]//a[@href="'.$this->path($page->fresh(),$locale).'"]')->length);}
-            $this->assertSame($locale==='it'?0:1,$xpath->query('//*[@id="left-sidebar"]//a[@href="'.$this->path($editorial,$locale).'"]')->length);
+            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertNavigation($xpath,$locale,'/'.$locale);
+            foreach([$custom['service'],$about] as $page){$this->assertSame(0,$xpath->query(self::NAVIGATION.'//a[@href="'.$this->path($page->fresh(),$locale).'"]')->length);}
+            $this->assertSame($locale==='it'?0:1,$xpath->query(self::NAVIGATION.'//a[@href="'.$this->path($editorial,$locale).'"]')->length);
         }
     }
-    public function test_sidebar_omits_empty_collection_groups_without_hiding_essential_navigation(): void
+    public function test_navigation_omits_empty_collection_groups_without_hiding_essential_navigation(): void
     {
         foreach(Page::whereIn('kind',['service','services','vehicle','fleet','airport','airports','tour','tours'])->get() as $page){$page->update(['published'=>false]);}
         foreach(['en','it','es'] as $locale){
-            $page=Page::where('key','contact')->firstOrFail();$xpath=$this->xpath($this->get($page->translation($locale)->url())->assertOk()->getContent());$this->assertSidebars($xpath,$locale,$this->path($page,$locale));
-            $this->assertSame(0,$xpath->query('//*[@id="left-sidebar"]//details[@data-navigation-group="service" or @data-navigation-group="vehicle" or @data-navigation-group="airport" or @data-navigation-group="tour"]')->length);
+            $page=Page::where('key','contact')->firstOrFail();$xpath=$this->xpath($this->get($page->translation($locale)->url())->assertOk()->getContent());$this->assertNavigation($xpath,$locale,$this->path($page,$locale));
+            $this->assertSame(0,$xpath->query(self::NAVIGATION.'//details[@data-navigation-group="service" or @data-navigation-group="vehicle" or @data-navigation-group="airport" or @data-navigation-group="tour"]')->length);
         }
     }
     public function test_independent_intake_gates_enable_only_their_own_visible_forms(): void
     {
         $this->transport=$this->approveSyntheticOperation();config(['londra.accept_inquiries'=>false]);$state=app(PublicationState::class);$this->assertFalse($state->inquiriesAllowed());$this->assertTrue($state->privacyRequestsAllowed());
         foreach(['en','it','es'] as $locale){
-            $page=Page::where('key','privacy-request')->firstOrFail();$xpath=$this->xpath($this->get($page->translation($locale)->url())->assertOk()->getContent());$this->assertSidebars($xpath,$locale,$this->path($page,$locale));
+            $page=Page::where('key','privacy-request')->firstOrFail();$xpath=$this->xpath($this->get($page->translation($locale)->url())->assertOk()->getContent());$this->assertNavigation($xpath,$locale,$this->path($page,$locale));
             foreach($xpath->query('//form[@data-enquiry-form]') as $form){$this->assertForm($xpath,$form,['name'=>'text','email'=>'email','phone'=>'tel'],false,$locale);$this->assertSame('false',$form->getAttribute('data-inquiries-available'));}
             $forms=$xpath->query('//form[@data-privacy-form]');$this->assertSame(1,$forms->length);$this->assertForm($xpath,$forms->item(0),['email'=>'email'],true,$locale);$this->assertSame('true',$forms->item(0)->getAttribute('data-privacy-available'));
         }
         config(['londra.accept_inquiries'=>true]);Page::where('key','privacy-request')->firstOrFail()->update(['published'=>false]);$this->assertTrue($state->inquiriesAllowed());$this->assertFalse($state->privacyRequestsAllowed());
         foreach(['en','it','es'] as $locale){
-            $page=Page::where('key','contact')->firstOrFail();$xpath=$this->xpath($this->get($page->translation($locale)->url())->assertOk()->getContent());$this->assertSidebars($xpath,$locale,$this->path($page,$locale));
+            $page=Page::where('key','contact')->firstOrFail();$xpath=$this->xpath($this->get($page->translation($locale)->url())->assertOk()->getContent());$this->assertNavigation($xpath,$locale,$this->path($page,$locale));
             foreach($xpath->query('//form[@data-enquiry-form]') as $form){$this->assertForm($xpath,$form,['name'=>'text','email'=>'email','phone'=>'tel'],true,$locale);$this->assertSame('true',$form->getAttribute('data-inquiries-available'));}
         }
         $this->assertCount(0,$this->transport->sent);
     }
-    public function test_contact_action_rail_uses_current_validated_public_contact_values(): void
+    public function test_contact_actions_use_current_validated_public_contact_values(): void
     {
         Setting::create(['key'=>'public-contact','value'=>['phone_display'=>'+44 0000 000000','phone_link'=>'+440000000000','email'=>'team@example.test','instagram'=>'synthetic_londra']]);
         foreach(['en','it','es'] as $locale){
-            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$right=$xpath->query('//*[@id="right-sidebar"]');$this->assertSame(1,$right->length);
-            foreach(['tel:+440000000000','mailto:team@example.test','https://wa.me/440000000000'] as $link){$this->assertGreaterThan(0,$xpath->query('.//a[@href="'.$link.'"]',$right->item(0))->length);}
-            $this->assertSame(0,$xpath->query('.//a[@href="tel:+447438700287" or @href="mailto:info@londratransfers.co.uk"]',$right->item(0))->length);
+            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());
+            foreach(['//dialog[@id="enquiry-dialog"]','//*[@id="site-footer"]'] as $surface){
+                $nodes=$xpath->query($surface);$this->assertSame(1,$nodes->length);
+                foreach(['tel:+440000000000','mailto:team@example.test','https://wa.me/440000000000'] as $link){$this->assertGreaterThan(0,$xpath->query('.//a[@href="'.$link.'"]',$nodes->item(0))->length);}
+            }
+            $this->assertGreaterThan(0,$xpath->query('//a[@href="https://www.instagram.com/synthetic_londra/"]')->length);
+            $this->assertSame(0,$xpath->query('//a[@href="tel:+447438700287" or @href="mailto:info@londratransfers.co.uk"]')->length);
         }
     }
-    public function test_sidebar_home_honors_reviewed_interface_copy_and_approved_policy_links_have_their_own_localized_heading(): void
+    public function test_navigation_home_honors_reviewed_interface_copy_and_approved_policy_links_have_their_own_localized_heading(): void
     {
         $this->approveSyntheticPolicies();$labels=['en'=>'Our maintained home label','it'=>'La nostra home','es'=>'Nuestra página principal'];$saved=[];
         foreach($labels as $locale=>$label){$saved[$locale]=['home'=>$label];}Setting::create(['key'=>'interface-copy','value'=>$saved]);
         foreach(['en','it','es'] as $locale){
-            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertSidebars($xpath,$locale,'/'.$locale);
-            $home=$xpath->query('//*[@id="left-sidebar"]//a[@href="/'.$locale.'"]');$this->assertSame(1,$home->length);$this->assertSame($labels[$locale],trim($home->item(0)->textContent));
-            $drawer=$xpath->query('//dialog[@id="navigation-dialog"]//a[@class="sidebar-home"]');$this->assertSame(1,$drawer->length);$this->assertSame($labels[$locale],trim($drawer->item(0)->textContent));
-            $groups=$xpath->query('//*[@id="left-sidebar"]//details[@data-navigation-group="policy"]');$this->assertSame(1,$groups->length);
+            $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertNavigation($xpath,$locale,'/'.$locale);
+            $home=$xpath->query(self::NAVIGATION.'//a[@href="/'.$locale.'"]');$this->assertSame(1,$home->length);$this->assertSame($labels[$locale],trim($home->item(0)->textContent));
+            $drawer=$xpath->query('//dialog[@id="navigation-dialog"]//a[@class="nav-home"]');$this->assertSame(1,$drawer->length);$this->assertSame($labels[$locale],trim($drawer->item(0)->textContent));
+            $groups=$xpath->query(self::NAVIGATION.'//details[@data-navigation-group="policy"]');$this->assertSame(1,$groups->length);
             foreach(Page::where('kind','policy')->with('translations')->get() as $page){$links=$xpath->query('.//a[@href="'.$this->path($page,$locale).'"]',$groups->item(0));$this->assertSame(1,$links->length);$this->assertSame($page->translation($locale)->title,trim($links->item(0)->textContent));}
         }
     }
     public function test_real_vehicle_edit_deactivation_and_reactivation_update_both_navigation_surfaces_without_withdrawing_the_page(): void
     {
-        $page=$this->customPage('vehicle','synthetic-sidebar-active');$vehicle=Vehicle::where('page_id',$page->id)->firstOrFail();$this->actingAs($this->syntheticAdministrator());Filament::setCurrentPanel('admin');Filament::bootCurrentPanel();
+        $page=$this->customPage('vehicle','synthetic-navigation-active');$vehicle=Vehicle::where('page_id',$page->id)->firstOrFail();$this->actingAs($this->syntheticAdministrator());Filament::setCurrentPanel('admin');Filament::bootCurrentPanel();
         $editor=Livewire::test(EditVehicle::class,['record'=>$vehicle->getRouteKey()]);
         foreach([false,true] as $active){
             $editor->fillForm(['active'=>$active])->call('save')->assertHasNoFormErrors();$this->assertSame($active,$vehicle->fresh()->active);$this->assertTrue($page->fresh()->published);
             foreach(['en','it','es'] as $locale){
-                $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertSidebars($xpath,$locale,'/'.$locale);$path=$this->path($page,$locale);
-                foreach(['//*[@id="left-sidebar"]','//dialog[@id="navigation-dialog"]'] as $surface){$this->assertSame($active?1:0,$xpath->query($surface.'//a[@href="'.$path.'"]')->length);}
+                $xpath=$this->xpath($this->get('/'.$locale)->assertOk()->getContent());$this->assertNavigation($xpath,$locale,'/'.$locale);$path=$this->path($page,$locale);
+                foreach([self::NAVIGATION] as $surface){$this->assertSame($active?1:0,$xpath->query($surface.'//a[@href="'.$path.'"]')->length);}
             }
         }
     }

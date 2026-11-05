@@ -102,7 +102,7 @@ final class ContentManagementTest extends TestCase
         $this->assertSame(4,$vehicle->fresh()->passengers);
         $this->assertFalse($vehicle->fresh()->active);
         $response=$this->get($fleetUrl)->assertOk()->assertDontSee($page->translation('en')->title);$xpath=$this->xpath($response->getContent());$detail=(string)parse_url($page->translation('en')->url(),PHP_URL_PATH);
-        $this->assertTrue($page->fresh()->published);$this->assertSame(0,$xpath->query('//*[@id="left-sidebar"]//a[@href="'.$detail.'"]')->length);$this->assertSame(0,$xpath->query('//dialog[@id="navigation-dialog"]//a[@href="'.$detail.'"]')->length);
+        $this->assertTrue($page->fresh()->published);$this->assertSame(0,$xpath->query('//*[@id="site-footer"]//a[@href="'.$detail.'"]')->length);$this->assertSame(0,$xpath->query('//dialog[@id="navigation-dialog"]//a[@href="'.$detail.'"]')->length);
         $page->update(['published'=>false]);
         Livewire::test(ListVehicles::class)->assertTableActionVisible('delete',$vehicle)->callTableAction('delete',$vehicle)->assertHasNoErrors();
         $this->assertDatabaseMissing('vehicles',['id'=>$vehicle->id]);

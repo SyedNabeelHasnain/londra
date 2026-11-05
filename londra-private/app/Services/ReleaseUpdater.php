@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 final class ReleaseUpdater
 {
-    public const VERSION = '2026-10-13.5';
+    public const VERSION = '2026-11-05.1';
     public function run(): void
     {
         Cache::lock('londra-release-update', 300)->block(2, function (): void {
