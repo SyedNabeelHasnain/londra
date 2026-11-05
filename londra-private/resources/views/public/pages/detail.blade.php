@@ -3,6 +3,7 @@
 @php
     $detailImage = Html::image($v, $p['image_key'], '', 'eager-high', '(min-width: 1200px) 660px, (min-width: 900px) 52vw, 100vw');
     $detailHasContent = !empty($p['highlights']) || $paragraphs || !empty($p['detail_heading']) || ($pageVehicle && !empty($pageVehicle['luggage_approved']));
+    $sectionGroup = SiteViewModel::sectionGroup($v);
 @endphp
 <section class="page-hero {{ $detailImage ? '' : 'is-text-only' }}" aria-labelledby="page-title">
 <div class="container page-hero-grid">
@@ -49,6 +50,18 @@
 @endforeach
 </article>
 @endif
+<div class="detail-rail">
+@if($sectionGroup)
+<nav class="rail-nav" aria-labelledby="rail-nav-title">
+<h2 class="eyebrow rail-nav-title" id="rail-nav-title">{{ $u['in_this_section'] }}</h2>
+@if($sectionGroup['overview'])<a class="rail-nav-overview" href="{{ $sectionGroup['overview']['url'] }}">{{ $sectionGroup['overview']['title'] }}</a>@endif
+<ul>
+@foreach($sectionGroup['items'] as $sectionItem)
+<li><a href="{{ $sectionItem['url'] }}" @if($sectionItem['key'] === $p['key']) aria-current="page" @endif><span>{{ $sectionItem['title'] }}</span></a></li>
+@endforeach
+</ul>
+</nav>
+@endif
 <aside class="journey-card" aria-labelledby="journey-card-title">
 <p class="eyebrow">{{ $u['contact_kicker'] }}</p>
 <h2 id="journey-card-title">{{ $isPartnership ? $u['partner_contact_title'] : $u['detail_contact'] }}</h2>
@@ -64,6 +77,7 @@
 <li><a href="{{ $whatsapp }}" rel="noopener noreferrer">{!! Html::icon('chat', 16) !!}<span>WhatsApp</span></a></li>
 </ul>
 </aside>
+</div>
 </div>
 </section>
 @if($pageVehicle)

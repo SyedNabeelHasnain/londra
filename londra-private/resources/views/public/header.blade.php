@@ -53,3 +53,11 @@
 </div>
 </div>
 </header>
+<nav class="section-bar" aria-label="{{ $u['main_sections'] }}">
+<ul class="section-bar-list">
+@foreach(SiteViewModel::HEADER as $key)
+@continue(!isset($cat[$key]))
+<li><a href="{{ $links[$key] }}" {!! $headerState($key) !!}>{{ $u[$key] }}</a></li>
+@endforeach
+</ul>
+</nav>

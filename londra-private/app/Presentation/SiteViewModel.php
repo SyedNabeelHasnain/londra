@@ -115,6 +115,16 @@ final class SiteViewModel
         return null;
     }
 
+    /** The collection group that a service, airport, vehicle or tour page belongs to, for the in-section list. */
+    public static function sectionGroup(array $v): ?array
+    {
+        if (!isset(self::COLLECTIONS[$v['page']['kind']])) { return null; }
+        foreach (self::navigation($v) as $group) {
+            if ($group['key'] === $v['page']['kind'] && count($group['items']) > 1) { return $group; }
+        }
+        return null;
+    }
+
     /** Figures shown in the homepage summary. Every value is derived from published records. */
     public static function facts(array $v): array
     {

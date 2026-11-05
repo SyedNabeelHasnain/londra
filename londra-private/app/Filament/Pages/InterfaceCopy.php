@@ -62,7 +62,7 @@ final class InterfaceCopy extends Page implements HasSchemas
         if(preg_match('/^(fleet_|vehicle_|luggage_|gallery_|compare_|passengers$|previous_vehicle$|next_vehicle$|view_vehicle$)/',$key)){return 'Fleet and photographs';}
         if(preg_match('/^(form_|contact_|enquir|offline_|process_|name$|email$|phone$|send$|sending$|received$|reference$|try_again$)/',$key)){return 'Contact and enquiry';}
         if(preg_match('/^(hero_|services_|airport_|experience_|value_|comfort_|punctuality_|discretion_|journey_|planning_|signature$|slogan$)/',$key)){return 'Homepage and service presentation';}
-        if(preg_match('/^(nav_|menu_|footer_|home$|services$|fleet$|airports$|tours$|about$|contact$|directory$|faq|breadcrumb|reading_|back_|language$|light_|dark_)/',$key)){return 'Navigation and appearance';}
+        if(preg_match('/^(nav_|menu_|footer_|home$|services$|fleet$|airports$|tours$|about$|contact$|directory$|faq|breadcrumb|reading_|back_|language$|light_|dark_|main_sections$|in_this_section$|on_this_page$)/',$key)){return 'Navigation and appearance';}
         return 'General interface';
     }
 }

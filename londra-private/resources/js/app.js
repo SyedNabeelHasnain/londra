@@ -69,6 +69,44 @@
         document.querySelectorAll('[data-language-switch][open]').forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
     });
 
+    /* Contents list: mark the section in view, natively where scroll-target-group is supported */
+    const contents = document.querySelector('[data-contents]');
+    if (contents) {
+        const links = Array.from(contents.querySelectorAll('a[href^="#"]'));
+        const keepVisible = link => {
+            if (!link || contents.scrollHeight <= contents.clientHeight) return;
+            const top = link.offsetTop;
+            const bottom = top + link.offsetHeight;
+            if (top < contents.scrollTop) contents.scrollTop = top - 8;
+            else if (bottom > contents.scrollTop + contents.clientHeight) contents.scrollTop = bottom - contents.clientHeight + 8;
+        };
+        const native = CSS.supports('scroll-target-group: auto');
+        const mark = current => {
+            links.forEach(link => {
+                if (!native) link.classList.toggle('target-current', link === current);
+                if (link === current) link.setAttribute('aria-current', 'true');
+                else link.removeAttribute('aria-current');
+            });
+            keepVisible(current);
+        };
+        if (native) {
+            const sync = () => mark(contents.querySelector('a:target-current'));
+            requestAnimationFrame(sync);
+            window.addEventListener('load', () => requestAnimationFrame(sync), {once: true});
+            document.addEventListener('scrollend', sync);
+        } else if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) mark(links.find(link => link.hash === `#${entry.target.id}`) || null);
+                });
+            }, {rootMargin: '-45% 0px -55% 0px'});
+            links.forEach(link => {
+                const target = document.getElementById(link.hash.slice(1));
+                if (target) observer.observe(target);
+            });
+        }
+    }
+
     /* Dialogs: native modal behaviour, light dismissal where closedby is unsupported */
     const supportsClosedBy = 'closedBy' in HTMLDialogElement.prototype;
     const outside = (event, dialog) => {

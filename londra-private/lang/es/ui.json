@@ -168,5 +168,8 @@
   "error_503_title": "El sitio web no está disponible temporalmente.",
   "error_503_body": "Inténtelo más tarde. Puede contactar con nuestro equipo por teléfono o correo electrónico para hablar de sus planes de viaje.",
   "navigation_policies": "Información legal y privacidad",
-  "discover_more": "Descubra más"
+  "discover_more": "Descubra más",
+  "main_sections": "Secciones principales",
+  "in_this_section": "En esta sección",
+  "on_this_page": "En esta página"
 }

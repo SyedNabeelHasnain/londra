@@ -168,5 +168,8 @@
   "error_503_title": "The website is temporarily unavailable.",
   "error_503_body": "Please try again later. You can still contact our team by telephone or email to discuss your travel plans.",
   "navigation_policies": "Legal and privacy",
-  "discover_more": "Discover more"
+  "discover_more": "Discover more",
+  "main_sections": "Main sections",
+  "in_this_section": "In this section",
+  "on_this_page": "On this page"
 }

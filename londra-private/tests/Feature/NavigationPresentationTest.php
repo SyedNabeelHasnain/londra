@@ -233,4 +233,48 @@ final class NavigationPresentationTest extends TestCase
             }
         }
     }
+
+    public function test_tablet_section_bar_in_section_lists_and_policy_contents(): void
+    {
+        $class=static fn(string $name):string=>'contains(concat(" ",normalize-space(@class)," ")," '.$name.' ")';
+        foreach(['terms','privacy','refund','cookies','accessibility'] as $key){
+            $policy=Page::with('translations')->where('key',$key)->firstOrFail();
+            foreach($policy->translations as $translation){$translation->update(['ready'=>true]);}
+            $policy->refresh();$policy->update(['approved_at'=>now(),'published'=>true]);
+        }
+        $activeVehiclePages=Vehicle::where('active',true)->pluck('page_id')->all();
+        foreach(['en','it','es'] as $locale){
+            $copy=app(PublicCopy::class)->forLocale($locale);
+            foreach(['heathrow'=>'airport','e-class'=>'vehicle','chauffeur-service'=>'service','tours-uk'=>'tour'] as $key=>$kind){
+                $page=Page::where('key',$key)->firstOrFail();$own=$this->path($page,$locale);
+                $xpath=$this->xpath($this->get($own)->assertOk()->getContent());
+                $bar=$xpath->query('//nav['.$class('section-bar').']');$this->assertSame(1,$bar->length,$locale.' '.$key);
+                $this->assertSame($copy['main_sections'],$bar->item(0)->getAttribute('aria-label'));
+                $barLinks=[];foreach($xpath->query('.//a',$bar->item(0)) as $link){$barLinks[]=trim($link->textContent);}
+                $this->assertSame([$copy['services'],$copy['airports'],$copy['fleet'],$copy['tours'],$copy['about'],$copy['contact']],$barLinks);
+                $rail=$xpath->query('//nav['.$class('rail-nav').']');$this->assertSame(1,$rail->length,$locale.' '.$key);
+                $title=$xpath->query('.//h2',$rail->item(0))->item(0);
+                $this->assertSame($copy['in_this_section'],trim($title->textContent));$this->assertSame($title->getAttribute('id'),$rail->item(0)->getAttribute('aria-labelledby'));
+                $siblings=Page::with('translations')->where('kind',$kind)->where('published',true)->when($kind==='vehicle',fn($query)=>$query->whereIn('id',$activeVehiclePages))->get();
+                $expected=$siblings->map(fn(Page $sibling)=>$this->path($sibling,$locale))->all();
+                $listed=[];foreach($xpath->query('.//ul//a',$rail->item(0)) as $link){$listed[]=$link->getAttribute('href');}
+                $this->assertEqualsCanonicalizing($expected,$listed,$locale.' '.$key);$this->assertCount(count(array_unique($listed)),$listed);
+                $current=$xpath->query('.//ul//a[@aria-current="page"]',$rail->item(0));$this->assertSame(1,$current->length);$this->assertSame($own,$current->item(0)->getAttribute('href'));
+            }
+            $about=$this->xpath($this->get($this->path(Page::where('key','about')->firstOrFail(),$locale))->assertOk()->getContent());
+            $this->assertSame(0,$about->query('//nav['.$class('rail-nav').']')->length);
+            foreach(['terms','privacy','refund','cookies','accessibility'] as $key){
+                $xpath=$this->xpath($this->get($this->path(Page::where('key',$key)->firstOrFail(),$locale))->assertOk()->getContent());
+                $nav=$xpath->query('//nav['.$class('policy-contents').']');$this->assertSame(1,$nav->length,$locale.' '.$key);
+                $this->assertSame($copy['on_this_page'],trim($xpath->query('.//h2',$nav->item(0))->item(0)->textContent));
+                $links=$xpath->query('.//a',$nav->item(0));$sections=$xpath->query('//article['.$class('policy-prose').']/section');
+                $this->assertGreaterThan(1,$links->length);$this->assertSame($sections->length,$links->length,$locale.' '.$key);
+                foreach($links as $index=>$link){
+                    $id=substr($link->getAttribute('href'),1);$targets=$xpath->query('//*[@id="'.$id.'"]');
+                    $this->assertSame(1,$targets->length,$locale.' '.$key.' '.$id);$this->assertSame($sections->item($index),$targets->item(0));
+                    $this->assertSame(trim($xpath->query('.//h2',$targets->item(0))->item(0)->textContent),trim($link->textContent));
+                }
+            }
+        }
+    }
 }
