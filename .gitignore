@@ -23,7 +23,6 @@ __pycache__/
 !/londra-private/storage/app/
 /londra-private/storage/app/*
 !/londra-private/storage/app/brand-sources/
-!/londra-private/storage/app/geoip/
 /londra-private/.londra-installed
 /londra-private/.londra-setup-key
 /public_html/build/

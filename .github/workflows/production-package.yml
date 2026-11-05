@@ -51,7 +51,6 @@ jobs:
       LONDRA_PUBLICATION_APPROVED: 'false'
       LONDRA_PRIVACY_APPROVED: 'false'
       LONDRA_INDEXING_ENABLED: 'false'
-      LONDRA_COUNTRY_LOOKUP: 'false'
       COMPOSER_ALLOW_SUPERUSER: '1'
     defaults:
       run:

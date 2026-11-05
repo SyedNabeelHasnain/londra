@@ -70,7 +70,7 @@ def selected_private(path):
     if first == "bootstrap" and relative.parts[1] == "cache":
         return False
     if first == "storage":
-        return len(relative.parts) > 2 and relative.parts[1] == "app" and relative.parts[2] in {"brand-sources", "geoip"}
+        return len(relative.parts) > 2 and relative.parts[1] == "app" and relative.parts[2] in {"brand-sources"}
     return True
 
 
@@ -147,8 +147,6 @@ def verify_build():
     require(actual == artifacts, "The build directory contains obsolete or unreferenced files. Rebuild with npm run build.")
     for name in PUBLIC_REQUIRED:
         require((PUBLIC / name).is_file(), "A required public asset is missing: " + name)
-    require((PRIVATE / "storage/app/geoip/country.mmdb").is_file(), "The local country database is missing.")
-    require((PRIVATE / "storage/app/geoip/country-version.json").is_file(), "The country database attribution metadata is missing.")
     photos = list((PUBLIC / "assets/photos").glob("*.webp"))
     masters = list((PRIVATE / "storage/app/brand-sources/photos").glob("*.png"))
     require(len(photos) == 39 and len(masters) == 13, "The approved photography set is incomplete.")

@@ -19,8 +19,6 @@ final class RunCron extends Command
             $dailyKey = 'londra-maintenance:'.$london->format('Y-m-d');
             if ($london->format('H:i') >= '03:20' && Cache::add($dailyKey, true, 172800)) {
                 if (Artisan::call('londra:retention') !== 0 || Artisan::call('queue:prune-failed', ['--hours' => 168]) !== 0) { Cache::forget($dailyKey); return self::FAILURE; }
-                $weeklyKey = 'londra-country-update:'.$london->format('o-W');
-                if (config('londra.country_lookup') && Cache::add($weeklyKey, true, 1209600) && Artisan::call('londra:refresh-country-data') !== 0) { Cache::forget($weeklyKey); }
             }
             if (Artisan::call('queue:work', ['connection' => 'database', '--stop-when-empty' => true, '--max-jobs' => 20, '--max-time' => 40, '--tries' => 3, '--timeout' => 30]) !== 0) { return self::FAILURE; }
             Setting::updateOrCreate(['key' => 'cron-health'], ['value' => ['last_success_at' => now()->toIso8601String(), 'php_version' => PHP_VERSION]]);

@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 namespace App\Providers;
-use App\Services\CountryResolver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -11,7 +10,6 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(CountryResolver::class, \App\Services\LocalCountryResolver::class);
         $this->app->bind(\App\Contracts\EmailTransport::class, \App\Services\ZohoMailTransport::class);
     }
     public function boot(): void
@@ -19,7 +17,7 @@ final class AppServiceProvider extends ServiceProvider
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
                 $settings = \App\Models\Setting::find('launch-operations')?->value ?? [];
-                foreach (['accept_inquiries', 'send_notifications', 'publication_approved', 'privacy_approved', 'indexing_enabled', 'country_lookup'] as $key) {
+                foreach (['accept_inquiries', 'send_notifications', 'publication_approved', 'privacy_approved', 'indexing_enabled'] as $key) {
                     if (array_key_exists($key, $settings)) { config(['londra.'.$key => (bool) $settings[$key]]); }
                 }
             }

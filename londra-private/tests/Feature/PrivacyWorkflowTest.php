@@ -161,15 +161,15 @@ final class PrivacyWorkflowTest extends TestCase
         $row = DB::table('sessions')->where('id', 'synthetic-minimal-session')->first();
         $this->assertNull($row->ip_address); $this->assertNull($row->user_agent);
     }
-    public function test_local_country_lookup_and_explicit_language_precedence(): void
+    public function test_browser_language_negotiation_and_explicit_language_precedence(): void
     {
-        $resolver = app(\App\Services\CountryResolver::class);
-        $this->assertSame('IT', $resolver->country('2.36.0.1')); $this->assertSame('ES', $resolver->country('80.24.0.1'));
-        $this->assertNull($resolver->country('127.0.0.1')); $this->assertNull($resolver->country('invalid'));
-        config(['londra.country_lookup' => true]);
-        $this->withServerVariables(['REMOTE_ADDR' => '2.36.0.1'])->get('/')->assertRedirect('/it');
-        $this->withServerVariables(['REMOTE_ADDR' => '80.24.0.1'])->get('/en')->assertOk()->assertSee('lang="en"', false);
-        $this->withCookie('londra_language', 'it')->withServerVariables(['REMOTE_ADDR' => '80.24.0.1'])->get('/')->assertRedirect('/it');
+        $this->withHeader('Accept-Language', 'it-IT,it;q=0.9,en;q=0.8')->get('/')->assertRedirect('/it')->assertHeader('Vary', 'Cookie, Accept-Language');
+        $this->withHeader('Accept-Language', 'es-ES,es;q=0.9')->get('/')->assertRedirect('/es');
+        $this->withHeader('Accept-Language', 'fr-FR,de;q=0.8')->get('/')->assertRedirect('/en');
+        $this->get('/')->assertRedirect('/en');
+        $this->withHeader('Accept-Language', 'es-ES')->get('/en')->assertOk()->assertSee('lang="en"', false);
+        $this->withCookie('londra_language', 'it')->withHeader('Accept-Language', 'es-ES')->get('/')->assertRedirect('/it');
+        $this->withCookie('londra_language', 'invalid')->withHeader('Accept-Language', 'es-ES')->get('/')->assertRedirect('/es');
     }
     public function test_the_single_process_cron_reports_real_execution(): void
     {

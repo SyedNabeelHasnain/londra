@@ -13,7 +13,8 @@ $checks=[];
 $check=static function(string $name,bool $passed) use(&$checks):void{$checks[]=['check'=>$name,'passed'=>$passed];};
 $read=static fn($path)=>json_decode(file_get_contents(__DIR__.'/../'.$path),true,512,JSON_THROW_ON_ERROR);
 foreach([
- ['it','en','ES','it'],['es','it','IT','es'],['en','it','IT','en'],[null,'es','IT','es'],[null,null,'IT','it'],[null,null,'ES','es'],[null,null,'GB','en'],[null,null,null,'en'],['fr','xx','it','it'],['xx','it','ES','it'],[null,null,'US','en']
+ ['it','en','es','it'],['es','it','it-IT,it;q=0.9','es'],['en','it','it','en'],[null,'es','it','es'],[null,null,'it-IT,it;q=0.9,en;q=0.8','it'],[null,null,'es-ES','es'],[null,null,'en-GB,en;q=0.9','en'],[null,null,null,'en'],['fr','xx','it','it'],['xx','it','es','it'],[null,null,'fr-FR,de;q=0.8','en'],
+ [null,null,'fr;q=1, es;q=0.4, it;q=0.7','it'],[null,null,'IT','it'],[null,null,'es-419','es'],[null,null,'it;q=0','en'],[null,null,'en;q=0.5, es;q=0.5','en'],[null,null,'*','en'],[null,null,'it;q=abc','it'],[null,null,str_repeat('a,',600),'en'],[null,null,'<script>','en']
 ]as$i=>$c){$check('Locale priority '.$i,LocalePolicy::choose($c[0],$c[1],$c[2])===$c[3]);}
 foreach(['','services','private-tours/london','flota/clase-e'] as$p){$check('Valid local path '.$p,LocalePolicy::safePath($p));}
 foreach(['//evil.example','https://evil.example','../admin','services/../admin','services?url=x','/admin','A','%2Fadmin','admin/','a\\b','a//b','a--b']as$p){$check('Reject path '.$p,!LocalePolicy::safePath($p));}
@@ -53,6 +54,7 @@ $zone=new DateTimeZone('Europe/London');
 foreach([['2026-03-29T00:30:00Z','00:30 GMT'],['2026-03-29T01:30:00Z','02:30 BST'],['2026-10-25T00:30:00Z','01:30 BST'],['2026-10-25T01:30:00Z','01:30 GMT']]as[$input,$expected]){$check('London DST '.$input,(new DateTimeImmutable($input))->setTimezone($zone)->format('H:i T')===$expected);}
 $failures=array_values(array_filter($checks,fn($row)=>!$row['passed']));
 $result=['runtime'=>PHP_VERSION,'method'=>'Pure PHP domain, content and presentation checks. No Laravel, Filament, MySQL, SMTP or Hostinger execution.','checks'=>count($checks),'passed'=>count($checks)-count($failures),'failures'=>$failures,'results'=>$checks];
+if(!is_dir(__DIR__.'/../reports')){mkdir(__DIR__.'/../reports',0775,true);}
 file_put_contents(__DIR__.'/../reports/domain-tests.json',json_encode($result,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR).PHP_EOL);
 echo json_encode(['checks'=>$result['checks'],'passed'=>$result['passed'],'failures'=>$failures],JSON_PRETTY_PRINT).PHP_EOL;
 exit($failures?1:0);

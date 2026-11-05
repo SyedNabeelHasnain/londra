@@ -40,7 +40,6 @@ final class ReadinessReport
             ['label'=>'Database job queue','ok'=>$connection&&config('queue.connections.database.driver')==='database'&&config('queue.connections.database.connection')==='mysql'&&config('queue.connections.database.table')==='jobs'&&Schema::connection('mysql')->hasTable('jobs'),'detail'=>'Application intake, retries and cron workers explicitly use the database connection and jobs table.'],
             ['label'=>'Privacy workflow database migration','ok'=>$privacySchema,'detail'=>$privacySchema?'Installed':'Apply the application update.'],
             ['label'=>'Background work ran recently','ok'=>$cronRecent,'detail'=>isset($cron['last_success_at']) ? 'Last success: '.$cron['last_success_at'].'; CLI PHP '.($cron['php_version']??'not recorded') : 'Configure the PHP 8.5 Cron Job.'],
-            ['label'=>'Local country database included','ok'=>is_file(storage_path('app/geoip/country.mmdb')),'detail'=>'Country lookup is optional and requires an accurate privacy review.'],
             ['label'=>'Exactly one administrator','ok'=>$connection&&User::count()===1,'detail'=>'Single administrator only; registration is disabled.'],
             ['label'=>'Published pages have three reviewed translations','ok'=>$connection&&$pages->isNotEmpty()&&$unfinished===0,'detail'=>$unfinished.' published pages require attention.'],
             ['label'=>'Policies reviewed and published','ok'=>$policies===5,'detail'=>$policies.' of 5 policy pages approved and published.'],

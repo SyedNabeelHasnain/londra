@@ -3,17 +3,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 use App\Domain\LocalePolicy;
 use App\Models\Page;
-use App\Services\CountryResolver;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 final class LocaleController
 {
-    public function entry(Request $request, CountryResolver $resolver): RedirectResponse
+    public function entry(Request $request): RedirectResponse
     {
         $preference = $request->cookie('londra_language');
-        $country = config('londra.country_lookup') && !in_array($preference, LocalePolicy::LOCALES, true) ? $resolver->country($request->ip()) : null;
-        $locale = LocalePolicy::choose(null, $preference, $country);
-        return redirect('/'.$locale, 302)->withHeaders(['Cache-Control' => 'private, no-store', 'Vary' => 'Cookie']);
+        $locale = LocalePolicy::choose(null, is_string($preference) ? $preference : null, $request->header('Accept-Language'));
+        return redirect('/'.$locale, 302)->withHeaders(['Cache-Control' => 'private, no-store', 'Vary' => 'Cookie, Accept-Language']);
     }
     public function choose(Request $request, string $locale, string $key): RedirectResponse
     {

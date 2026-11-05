@@ -1,12 +1,5 @@
 Londra Transfers third-party materials
 
-IP Geolocation by DB-IP: https://db-ip.com
-Country Lite dataset: October 2026
-Source: https://db-ip.com/db/download/ip-to-country-lite
-Licence: Creative Commons Attribution 4.0 International
-https://creativecommons.org/licenses/by/4.0/
-The local database provides approximate country results with reduced coverage and accuracy. The website includes attribution in its footer.
-
-Laravel, Filament, Livewire, PHPMailer, MaxMind DB Reader and their dependencies retain their original licence and notice files under vendor.
+Laravel, Filament, Livewire, PHPMailer and their dependencies retain their original licence and notice files under vendor.
 
 Inter variable font: SIL Open Font License 1.1. The complete copyright and licence notice is retained in the sibling public_html/fonts/filament/filament/inter/LICENSE.txt.
