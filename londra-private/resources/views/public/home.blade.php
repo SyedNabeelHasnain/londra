@@ -68,7 +68,7 @@
 <div class="service-card-body">
 <h3><a href="{{ $item['url'] }}">{{ $item['title'] }}</a></h3>
 <p>{{ $item['intro'] }}</p>
-<a class="text-link" href="{{ $item['url'] }}"><span>{{ str_replace(':title', $item['title'], $u['explore_named']) }}</span>{!! Html::arrow() !!}</a>
+<a class="text-link" href="{{ $item['url'] }}"><span>{{ $u['discover_more'] }}<span class="visually-hidden">: {{ $item['title'] }}</span></span>{!! Html::arrow() !!}</a>
 </div>
 </article>
 @endforeach

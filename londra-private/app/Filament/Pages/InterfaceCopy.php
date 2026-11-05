@@ -37,8 +37,7 @@ final class InterfaceCopy extends Page implements HasSchemas
         $sections=[];
         foreach(trans('ui',[],'en') as $key=>$value){
             $group=$this->groupFor($key);
-            $field=Textarea::make('copy.'.$key)->label(Str::headline($key))->helperText('Fixed key: '.$key.(in_array($key,['explore_named','view_named_vehicle'],true)?'. Keep the required :title token exactly once.':''))->required()->maxLength(1200)->rows(mb_strlen($value)>100?3:2);
-            if(in_array($key,['explore_named','view_named_vehicle'],true)){$field->rules([fn()=>function(string $attribute,mixed $value,\Closure $fail):void{if(!is_string($value)||substr_count($value,':title')!==1){$fail('Keep the required :title token exactly once.');}}]);}
+            $field=Textarea::make('copy.'.$key)->label(Str::headline($key))->helperText('Fixed key: '.$key)->required()->maxLength(1200)->rows(mb_strlen($value)>100?3:2);
             $sections[$group][]=$field;
         }
         $components=[Select::make('locale')->options(['en'=>'English','it'=>'Italiano','es'=>'Español'])->required()->live()->afterStateUpdated(fn(string $state)=>$this->switchLocale($state))];
@@ -52,7 +51,6 @@ final class InterfaceCopy extends Page implements HasSchemas
         abort_unless($locale===$this->loadedLocale,422);
         $defaults=trans('ui',[],$locale);$copy=array_intersect_key($data['copy'],$defaults);
         foreach($defaults as $key=>$value){if(!isset($copy[$key])||!is_string($copy[$key])||trim($copy[$key])===''||mb_strlen($copy[$key])>1200){throw \Illuminate\Validation\ValidationException::withMessages(['data.copy'=>'Every fixed key requires a non-empty translation, up to 1,200 characters.']);}}
-        foreach(['explore_named','view_named_vehicle'] as $key){if(isset($defaults[$key])&&substr_count($copy[$key],':title')!==1){throw \Illuminate\Validation\ValidationException::withMessages(['data.copy.'.$key=>'Keep the required :title token exactly once.']);}}
         DB::transaction(function()use($locale,$copy):void{$setting=Setting::query()->lockForUpdate()->firstOrCreate(['key'=>'interface-copy'],['value'=>[]]);$saved=$setting->value??[];$saved[$locale]=$copy;$setting->update(['value'=>$saved]);});
         $this->drafts[$locale]=$copy;
         Notification::make()->title('Interface translations saved')->body('The selected language was saved. Drafts in the other languages remain available on this screen.')->success()->send();

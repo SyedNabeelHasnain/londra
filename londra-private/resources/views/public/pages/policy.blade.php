@@ -1,7 +1,7 @@
 <section class="section policy-section" aria-labelledby="page-title">
 <div class="container policy-container">
 <header class="policy-header">
-<p class="eyebrow">Londra Transfers</p>
+<p class="eyebrow">{{ $p['eyebrow'] ?: 'Londra Transfers' }}</p>
 <h1 id="page-title">{{ $p['title'] }}</h1>
 <p class="lede">{{ $p['intro'] }}</p>
 </header>

@@ -29,7 +29,7 @@
 @endforeach
 </ul>
 @endif
-<a class="text-link" href="{{ $deckItem['url'] }}"><span>{{ str_replace(':title', $deckName, $u['view_named_vehicle']) }}</span>{!! Html::arrow() !!}</a>
+<a class="text-link" href="{{ $deckItem['url'] }}"><span>{{ $u['discover_more'] }}<span class="visually-hidden">: {{ $deckItem['title'] }}</span></span>{!! Html::arrow() !!}</a>
 </div>
 @if($deckImage)
 <div class="fleet-visual">

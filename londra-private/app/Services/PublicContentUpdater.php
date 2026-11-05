@@ -9,7 +9,7 @@ final class PublicContentUpdater
     public function run(): void
     {
         $previous = [];
-        foreach (['previous-public-copy.json','previous-public-copy-2026-10-12.2.json','previous-public-copy-2026-10-13.1.json','previous-public-copy-2026-10-13.2.json','previous-public-copy-2026-10-13.3.json','previous-public-copy-2026-10-13.5.json'] as $file) {
+        foreach (['previous-public-copy.json','previous-public-copy-2026-10-12.2.json','previous-public-copy-2026-10-13.1.json','previous-public-copy-2026-10-13.2.json','previous-public-copy-2026-10-13.3.json','previous-public-copy-2026-10-13.5.json','previous-public-copy-2026-11-05.1.json'] as $file) {
             $previous[] = json_decode((string) file_get_contents(database_path('content/'.$file)), true, 512, JSON_THROW_ON_ERROR);
         }
         $current = json_decode((string) file_get_contents(database_path('content/pages.json')), true, 512, JSON_THROW_ON_ERROR);

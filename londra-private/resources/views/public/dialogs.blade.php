@@ -63,7 +63,7 @@
 @endforeach
 </ul>
 @endif
-<a class="text-link" href="{{ $item['url'] }}"><span>{{ str_replace(':title', $name, $u['view_named_vehicle']) }}</span>{!! Html::arrow() !!}</a>
+<a class="text-link" href="{{ $item['url'] }}"><span>{{ $u['discover_more'] }}<span class="visually-hidden">: {{ $item['title'] }}</span></span>{!! Html::arrow() !!}</a>
 </article>
 @endforeach
 </div>

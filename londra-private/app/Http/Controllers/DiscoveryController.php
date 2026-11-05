@@ -9,9 +9,9 @@ use Illuminate\Http\Request;
 final class DiscoveryController
 {
     private const INTRODUCTIONS = [
-        'en' => 'Private transport and chauffeur services in London and the United Kingdom.',
-        'it' => 'Trasporto privato e servizi con autista a Londra e nel Regno Unito.',
-        'es' => 'Transporte privado y servicios de chófer en Londres y en el Reino Unido.',
+        'en' => 'Private transfers, chauffeur services and personalised tours in London and throughout the United Kingdom.',
+        'it' => 'Trasferimenti privati, servizi con autista e tour personalizzati a Londra e in tutto il Regno Unito.',
+        'es' => 'Traslados privados, servicios de chófer y tours personalizados en Londres y en todo el Reino Unido.',
     ];
     public function robots(PublicationState $state)
     {

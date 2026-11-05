@@ -74,13 +74,13 @@
 @include('public.section-heading', ['headingKicker' => $u['fleet_kicker'], 'headingTitle' => $u['related_vehicles'], 'headingIntro' => '', 'headingId' => 'related-title'])
 <div class="card-grid">
 @foreach($related as $other)
-@php $relatedItem = $cat[$other['page_key']]; $relatedName = SiteViewModel::vehicleName($relatedItem['title']); $relatedImage = Html::image($v, $other['image_key'], '', 'lazy', '(min-width: 1200px) 410px, (min-width: 720px) 45vw, 100vw'); @endphp
+@php $relatedItem = $cat[$other['page_key']]; $relatedImage = Html::image($v, $other['image_key'], '', 'lazy', '(min-width: 1200px) 410px, (min-width: 720px) 45vw, 100vw'); @endphp
 <article class="service-card {{ $relatedImage ? '' : 'is-text-only' }}">
 @if($relatedImage)<a class="service-card-media media" href="{{ $relatedItem['url'] }}" tabindex="-1" aria-hidden="true">{!! $relatedImage !!}</a>@endif
 <div class="service-card-body">
 <h3><a href="{{ $relatedItem['url'] }}">{{ $relatedItem['title'] }}</a></h3>
 <p class="capacity">{!! Html::icon('person', 18) !!}<span>{{ $u['up_to'] }} <strong>{{ (int) $other['passengers'] }}</strong> {{ $u['passengers'] }}</span></p>
-<a class="text-link" href="{{ $relatedItem['url'] }}"><span>{{ str_replace(':title', $relatedName, $u['view_named_vehicle']) }}</span>{!! Html::arrow() !!}</a>
+<a class="text-link" href="{{ $relatedItem['url'] }}"><span>{{ $u['discover_more'] }}<span class="visually-hidden">: {{ $relatedItem['title'] }}</span></span>{!! Html::arrow() !!}</a>
 </div>
 </article>
 @endforeach

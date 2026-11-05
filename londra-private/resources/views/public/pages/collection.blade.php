@@ -42,7 +42,7 @@
 @endforeach
 </ul>
 @endif
-<a class="text-link" href="{{ $item['url'] }}"><span>{{ str_replace(':title', $item['title'], $u['explore_named']) }}</span>{!! Html::arrow() !!}</a>
+<a class="text-link" href="{{ $item['url'] }}"><span>{{ $u['discover_more'] }}<span class="visually-hidden">: {{ $item['title'] }}</span></span>{!! Html::arrow() !!}</a>
 </div>
 @if($spreadImage)<a class="spread-media media" href="{{ $item['url'] }}" tabindex="-1" aria-hidden="true">{!! $spreadImage !!}</a>@endif
 </article>
@@ -67,7 +67,7 @@
 <span class="eyebrow">{{ $item['eyebrow'] }}</span>
 <h2>{{ $item['title'] }}</h2>
 <p>{{ $item['intro'] }}</p>
-<span class="text-link"><span>{{ str_replace(':title', $item['title'], $u['explore_named']) }}</span>{!! Html::arrow() !!}</span>
+<span class="text-link"><span>{{ $u['discover_more'] }}<span class="visually-hidden">: {{ $item['title'] }}</span></span>{!! Html::arrow() !!}</span>
 </a>
 @endforeach
 </div>

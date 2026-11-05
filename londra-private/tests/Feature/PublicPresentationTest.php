@@ -303,6 +303,36 @@ final class PublicPresentationTest extends TestCase
         foreach(['contact_team','faq','offline_contact_note'] as $retired){$this->assertArrayNotHasKey($retired,app(\App\Services\PublicCopy::class)->forLocale('en'));}
         foreach(Page::published()->with('translations')->get() as $page){foreach($page->translations as $translation){$this->assertDoesNotMatchRegularExpression('/illustrat|DB-IP|IP Geolocation/iu',$this->get($translation->url())->assertOk()->getContent(),$translation->url());}}
     }
+    public function test_content_audit_upgrade_from_11_05_1_publishes_audited_copy_and_requires_policy_re_approval(): void
+    {
+        foreach(['2026-10-12.1','2026-10-12.2','2026-10-13.1','2026-10-13.2','2026-10-13.3','2026-10-13.5','2026-11-05.1'] as $version){Setting::create(['key'=>'release-'.$version,'value'=>['applied_at'=>now()->toIso8601String()]]);}
+        $previous=json_decode(file_get_contents(database_path('content/previous-public-copy-2026-11-05.1.json')),true,512,JSON_THROW_ON_ERROR);
+        $old=array_column($previous['pages'],null,'key');$latest=array_column(json_decode(file_get_contents(database_path('content/pages.json')),true,512,JSON_THROW_ON_ERROR),null,'key');
+        $fields=['eyebrow','intro','body','highlights','faq_items','meta_description'];
+        foreach(['faqs','e-class','privacy','terms'] as $key){
+            $page=Page::with('translations')->where('key',$key)->firstOrFail();
+            foreach($page->translations as $translation){$translation->update(array_intersect_key($old[$key]['translations'][$translation->locale],array_flip($fields))+($page->kind==='policy'?['ready'=>true]:[]));}
+            if($page->kind==='policy'){$page->update(['approved_at'=>now(),'published'=>true]);}
+        }
+        Page::where('key','s-class')->firstOrFail()->translation('es')->update(['intro'=>'Una introducción revisada por el propietario.']);
+        $saved=$previous['ui'];$saved['en']['forms_unavailable']=$previous['ui']['en']['forms_unavailable'];$saved['it']['enquire_short']='Prenota';Setting::create(['key'=>'interface-copy','value'=>$saved]);
+        app(ReleaseUpdater::class)->run();
+        foreach(['faqs','e-class','privacy','terms'] as $key){
+            $page=Page::with('translations')->where('key',$key)->firstOrFail();
+            foreach(['en','it','es'] as $locale){
+                foreach($fields as $field){$this->assertJsonContentSame($latest[$key]['translations'][$locale][$field]??null,$page->translation($locale)->getAttribute($field),$key.' '.$locale.' '.$field);}
+                if($page->kind==='policy'){$this->assertFalse($page->translation($locale)->ready,$key.' '.$locale.' must be re-approved after a legal text change');}
+            }
+        }
+        $this->assertSame('Una introducción revisada por el propietario.',Page::where('key','s-class')->firstOrFail()->translation('es')->intro);
+        $copy=app(\App\Services\PublicCopy::class);
+        $this->assertSame(json_decode(file_get_contents(lang_path('en/ui.json')),true,512,JSON_THROW_ON_ERROR)['forms_unavailable'],$copy->forLocale('en')['forms_unavailable']);
+        $this->assertSame('Prenota',$copy->forLocale('it')['enquire_short']);
+        foreach(['explore_named','view_named_vehicle'] as $retired){$this->assertArrayNotHasKey($retired,$copy->forLocale('en'));}
+        foreach(['en','it','es'] as $locale){$this->assertNotSame('',trim($copy->forLocale($locale)['discover_more']));}
+        $text=implode(' ',array_map(static fn(array $page)=>json_encode($page['translations'],JSON_UNESCAPED_UNICODE),$latest));
+        $this->assertDoesNotMatchRegularExpression('/we do not describe|deliberately store|published application|present website configuration|must also be handled|silently returned|independently certified|vehicle category|categoria di veicolo|categoría de vehículo|illustrat/iu',$text);
+    }
     public function test_release_readiness_requires_the_current_content_update_not_only_the_previous_release_marker(): void
     {
         Setting::create(['key'=>'release-2026-10-13.3','value'=>['applied_at'=>now()->toIso8601String()]]);
